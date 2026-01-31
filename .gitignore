@@ -1,0 +1,52 @@
+# Environment variables
+.env
+.env.*
+.env.local
+.env.*.local
+
+# Log files
+*.log
+logs/*.log
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+
+# IDE files
+.vscode/
+.idea/
+
+# macOS system files
+.DS_Store
+
+# Python cache (add these)
+*.pyd
+.Python
+
+# Virtual environments (add these variations)
+env/
+ENV/
+.venv/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Distribution / packaging (for when you package Kirikou later)
+dist/
+build/
+*.egg-info/
+
+# Jupyter Notebooks (if you ever use them for data analysis)
+.ipynb_checkpoints/
+
+# macOS (add these)
+._*
+.Spotlight-V100
+.Trashes
