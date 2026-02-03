@@ -22,7 +22,7 @@ class Config:
     # RSS scraping
     FETCH_INTERVAL = int(os.environ.get('FETCH_INTERVAL', '3600'))
     REQUEST_TIMEOUT = int(os.environ.get('REQUEST_TIMEOUT', '10'))
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'NO_KEY')
+    SECRET_KEY = os.environ.get('SECRET_KEY')
 
     @classmethod
     def setup_logging(cls):
