@@ -12,7 +12,7 @@ class Config:
 
     # Logging
     os.makedirs('logs', exist_ok=True)
-    LOG_LEVEL = os.environ.get('LOG LEVEL', 'INFO')
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
     LOG_FILE = os.environ.get('LOG_FILE', 'logs/kirikou.log')
 
     # Application 
@@ -38,7 +38,7 @@ class Config:
     @classmethod
     def validate(cls):
         """Ensure required variables are set."""
-        required = ['SECRET_KEY', 'DATABASE_URL']
+        required = ['DATABASE_URL']
         missing = [var for var in required if not getattr(cls, var)]
         if missing:
             raise ValueError(f"Missing required env vars: {missing}") 
