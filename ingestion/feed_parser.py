@@ -103,52 +103,7 @@ def scrape_feeds(feed_urls: list[str]) -> list[dict]:
     return articles_collection
 
 
-# Part 3: The Orchestrator
-# Write a function that ties Parts 1 and 2 together, and handles multiple feeds.
-# Requirements:
 
-# Function signature: def scrape_feeds(feed_urls: list[str]) -> list[dict]
-# Takes a list of RSS feed URLs
-# Calls fetch_feed() for each URL
-# If a feed fails (returns None), skip it and continue — don't crash
-# Calls extract_articles() on each successful fetch
-# Collects all articles from all feeds into one list and returns it
-# Log the total number of articles collected at the end
-
-# Think about:
-
-# How do you skip a failed feed without stopping the loop?
-# How do you combine articles from multiple feeds into one list?
-
-
-# Part 4: A main Block
-# Add an if __name__ == "__main__": block at the bottom that:
-
-# Sets up logging using Config.setup_logging()
-# Defines a list of 3-4 real RSS feed URLs to test with (BBC, Reuters, CNN, Al Jazeera — search for their RSS URLs)
-# Calls scrape_feeds() with those URLs
-# Prints a summary: how many feeds were attempted, how many succeeded, total articles collected
-
-
-# Acceptance Criteria
-# When you run:
-# bashpython -m ingestion.feed_parser
-# You should see:
-
-# Timestamped log messages showing each feed being fetched
-# INFO logs for successful fetches with article counts
-# ERROR logs for any feeds that fail (if any)
-# A final summary of total articles collected
-# A log file updated in logs/kirikou.log
-
-
-# Hints If You Get Stuck
-
-# feedparser entries live in feed.entries — each entry is like a dictionary
-# A feed's name is usually in feed.feed.title
-# Each entry's link is usually in entry.link
-# Each entry's publish date is usually in entry.published
-# Remember: requests.get() can raise exceptions — that's what try/except is for
 
 
 

@@ -85,6 +85,7 @@ This will fetch articles from configured news sources (BBC, NY Times, Reuters, A
 🚧 **In Development** - Week 3 of 12-week build
 
 **Completed:**
+
 - Configuration and logging system
 - RSS feed scraper (Day 21)
   - `fetch_feed()` - Fetch and parse RSS feeds
