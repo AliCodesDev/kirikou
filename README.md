@@ -64,39 +64,65 @@ The following environment variables can be configured:
 
 ```
 kirikou/
-├── config.py           # Configuration management
-├── ingestion/          # Data ingestion module
-│   └── feed_parser.py  # RSS feed fetching and parsing
-├── test_config.py      # Configuration tests
-├── test_setup.py       # Setup verification
-├── requirements.txt    # Python dependencies
-├── logs/               # Application logs
-└── .env.example        # Environment template
+├── config.py              # Configuration management
+├── database/              # Database layer (NEW!)
+│   ├── __init__.py
+│   ├── schema.sql         # PostgreSQL schema
+│   └── init_db.py         # Database initialization
+├── ingestion/             # Data ingestion module
+│   └── feed_parser.py     # RSS feed fetching and parsing
+├── logs/                  # Application logs
+├── requirements.txt       # Python dependencies
+└── .env.example           # Environment template
 ```
+
+## Database Schema
+
+**Sources Table:**
+
+- Stores news outlet information (BBC, CNN, Reuters, etc.)
+- Enforces unique source names
+- Tracks country and political leaning for bias analysis
+
+**Articles Table:**
+
+- Stores news articles with title, URL, content, publication date
+- **Deduplication:** UNIQUE constraint on URL prevents duplicate articles
+- Foreign key links each article to its source
+- Flexible content fields (description/content can be NULL for incomplete RSS feeds)
 
 ## Usage
 
-Run the RSS feed scraper:
+**Initialize the database:**
+
+```bash
+python -m database.init_db
+```
+
+**Run the RSS feed scraper:**
 
 ```bash
 python -m ingestion.feed_parser
 ```
 
-This will fetch articles from configured news sources (BBC, NY Times, Reuters, Al Jazeera) and log the results.
-
 ## Status
 
-🚧 **In Development** - Week 3 of 12-week build
+🚧 **In Development** - Week 4, Day 22 of 12-week build
 
 **Completed:**
 
-- Configuration and logging system
-- RSS feed scraper (Day 21)
-  - `fetch_feed()` - Fetch and parse RSS feeds
-  - `extract_articles()` - Extract article metadata
-  - `scrape_feeds()` - Orchestrate multiple feed scraping
+- ✅ Configuration and logging system
+- ✅ RSS feed scraper (Week 3)
+- ✅ PostgreSQL database schema (Day 22)
+  - Sources and Articles tables
+  - Deduplication via UNIQUE constraints
+  - Referential integrity via foreign keys
+  - Automated timestamps
 
-**Next up:** Database integration
+**Next up:**
+
+- Day 23: SQL joins, transactions, and indexing
+- Day 24: Connect RSS scraper to database
 
 ## License
 
