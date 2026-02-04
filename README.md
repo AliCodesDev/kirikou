@@ -61,18 +61,37 @@ The following environment variables can be configured:
 ```
 kirikou/
 ├── config.py           # Configuration management
+├── ingestion/          # Data ingestion module
+│   └── feed_parser.py  # RSS feed fetching and parsing
 ├── test_config.py      # Configuration tests
+├── test_setup.py       # Setup verification
 ├── requirements.txt    # Python dependencies
 ├── logs/               # Application logs
 └── .env.example        # Environment template
 ```
 
+## Usage
+
+Run the RSS feed scraper:
+
+```bash
+python -m ingestion.feed_parser
+```
+
+This will fetch articles from configured news sources (BBC, NY Times, Reuters, Al Jazeera) and log the results.
+
 ## Status
 
 🚧 **In Development** - Week 3 of 12-week build
 
-**Currently building:** Configuration and logging system
-**Next up:** RSS feed scraper (Day 21)
+**Completed:**
+- Configuration and logging system
+- RSS feed scraper (Day 21)
+  - `fetch_feed()` - Fetch and parse RSS feeds
+  - `extract_articles()` - Extract article metadata
+  - `scrape_feeds()` - Orchestrate multiple feed scraping
+
+**Next up:** Database integration
 
 ## License
 
