@@ -6,8 +6,6 @@
 
 A Media Intelligence Platform for RSS feed aggregation and analysis.
 
-A Media Intelligence Platform for RSS feed aggregation and analysis.
-
 ## Overview
 
 Kirikou is a Python-based backend service designed to collect, process, and analyze media content from RSS feeds.
