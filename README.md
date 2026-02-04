@@ -1,5 +1,11 @@
 # Kirikou
 
+![Python](https://img.shields.io/badge/python-3.13+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Status](https://img.shields.io/badge/status-in_development-yellow.svg)
+
+A Media Intelligence Platform for RSS feed aggregation and analysis.
+
 A Media Intelligence Platform for RSS feed aggregation and analysis.
 
 ## Overview
