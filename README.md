@@ -91,6 +91,48 @@ kirikou/
 - Foreign key links each article to its source
 - Flexible content fields (description/content can be NULL for incomplete RSS feeds)
 
+## Database Queries & Utilities
+
+Kirikou provides reusable query functions for common operations:
+
+```python
+from database.utils import (
+    get_recent_articles,
+    get_source_stats,
+    get_inactive_sources,
+    get_duplicate_stories,
+    get_articles_by_source
+)
+
+# Get latest 20 articles with source info
+articles = get_recent_articles(limit=20)
+
+# Get source activity statistics
+stats = get_source_stats()
+
+# Find inactive sources (potential broken feeds)
+inactive = get_inactive_sources(hours=24)
+
+# Detect duplicate stories (event clustering)
+duplicates = get_duplicate_stories()
+
+# Get articles from specific source
+bbc_articles = get_articles_by_source("BBC News", days=7)
+```
+
+**Query Features:**
+
+- All queries return dictionaries for easy access
+- Proper error handling and logging
+- Parameterized queries prevent SQL injection
+- Connection pooling and cleanup
+
+**Performance Optimizations:**
+
+- Strategic indexes on frequently queried columns
+- Composite indexes for common query patterns
+- Transactions ensure data consistency
+
 ## Usage
 
 **Initialize the database:**
@@ -107,7 +149,7 @@ python -m ingestion.feed_parser
 
 ## Status
 
-🚧 **In Development** - Week 4, Day 22 of 12-week build
+🚧 **In Development** - Week 4, Day 23 of 12-week build
 
 **Completed:**
 
@@ -118,11 +160,16 @@ python -m ingestion.feed_parser
   - Deduplication via UNIQUE constraints
   - Referential integrity via foreign keys
   - Automated timestamps
-
+- ✅ Advanced SQL operations (Day 23)
+  - JOINs (INNER, LEFT, self-join)
+  - Strategic indexes for query performance
+  - Transaction handling
+  - Reusable database utilities
+  
 **Next up:**
 
-- Day 23: SQL joins, transactions, and indexing
-- Day 24: Connect RSS scraper to database
+- Day 24: Connect RSS scraper to database (articles persist!)
+- Day 25: SQLAlchemy ORM
 
 ## License
 

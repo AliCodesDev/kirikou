@@ -30,12 +30,27 @@ def init_database():
         # Commit the transaction
         conn.commit()
         logger.info("Database schema created successfully")
-        
-    except psycopg2.Error as db_error:
-        logger.error(f"Database error: {db_error}")
+
+    except psycopg2.OperationalError as e:
+    # Connection failed, wrong credentials, database doesn't exist
+        logger.error(f"❌ Database connection error: {e}")
         if conn:
-            conn.rollback()  # Undo any partial changes
-        raise  # Re-raise to notify caller
+            conn.rollback()
+        raise
+    
+    except psycopg2.ProgrammingError as e:
+    # SQL syntax error, table doesn't exist, etc.
+        logger.error(f"❌ SQL execution error: {e}")
+        if conn:
+            conn.rollback()
+        raise
+    
+    except psycopg2.Error as e:
+    # Catch-all for other database errors
+        logger.error(f"❌ Database error: {e}")
+        if conn:
+            conn.rollback() # Undo any partial changes
+        raise # Re-raise to notify caller
         
     except FileNotFoundError:
         logger.error(f"Schema file not found: {schema_path}")
@@ -55,4 +70,10 @@ def init_database():
 
 
 if __name__ == "__main__":
-    init_database()
+    try:
+        init_database()
+        logger.info("🎉 Database initialization complete!")
+    except Exception as e:
+        logger.error(f"💥 Failed to initialize database: {e}")
+        exit(1)  # Exit with error code (non-zero = failure)
+
