@@ -244,3 +244,101 @@ def get_articles_by_source(source_name: str, days: int = 7) -> List[Dict]:
     
     # TODO: Call execute_query with (source_name, days) as params
     return execute_query(query, (source_name, days))
+
+def get_all_sources() -> List[Dict]:
+    """
+    Get all sources from database.
+    
+    Returns:
+        List of sources with keys: id, name, url, country, political_leaning
+        
+    Example:
+        sources = get_all_sources()
+        for source in sources:
+            print(f"Scraping {source['name']} from {source['url']}")
+    """
+    query = """
+        SELECT id, name, url, country, political_leaning
+        FROM sources
+        ORDER BY name
+    """
+    
+    return execute_query(query)
+
+
+def save_articles_batch(articles: List[Dict], source_id: int) -> int:
+    """
+    Save multiple articles to database in a transaction.
+    
+    Duplicates (same URL) are automatically skipped via ON CONFLICT.
+    
+    Args:
+        articles: List of article dicts with keys:
+                  - title (required)
+                  - url (required)
+                  - description (optional)
+                  - content (optional)
+                  - author (optional)
+                  - published_at (required)
+        source_id: ID of the source these articles belong to
+        
+    Returns:
+        Number of articles inserted (excludes duplicates)
+        
+    Example:
+        articles = [
+            {'title': '...', 'url': '...', 'published_at': datetime(...), ...},
+        ]
+        inserted = save_articles_batch(articles, source_id=1)
+        print(f"Inserted {inserted} new articles")
+    """
+
+    if not articles:
+        return 0
+    
+    conn = None
+    cursor = None
+
+    try:
+        conn = psycopg2.connect(Config.DATABASE_URL)
+        cursor = conn.cursor()
+
+        # Prepare data as list of tuples for executemany
+        data = []
+        for article in articles:
+            data.append((
+                source_id,
+                article['title'],
+                article.get('description'),
+                article.get('content'),
+                article.get('author'),
+                article['published_at'],
+                article['url']
+            ))
+        
+        # Batch insert with duplicate handling
+        insert_query = """
+            INSERT INTO articles (source_id, title, description, content, author, published_at, url)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (url) DO NOTHING
+        """
+        cursor.executemany(insert_query, data)
+
+        # How many were actually inserted?
+        inserted_count = cursor.rowcount
+        conn.commit()
+
+        logger.info(f"Saved {inserted_count} new articles (source_id={source_id})")
+        return inserted_count
+    
+    except psycopg2.Error as e:
+        logger.error(f"Failed to save articles: {e}")
+        if conn:
+            conn.rollback()
+        raise
+        
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()

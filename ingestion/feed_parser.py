@@ -1,5 +1,9 @@
 import requests, feedparser, logging
 from config import Config
+from datetime import datetime
+from dateutil import parser as date_parser
+from database.utils import get_all_sources, save_articles_batch
+
 
 # Setup logging
 Config.setup_logging()
@@ -42,83 +46,140 @@ def fetch_feed(url: str) -> feedparser.FeedParserDict | None:
 
 def extract_articles(feed: feedparser.FeedParserDict) -> list[dict]:
     """
-    Extract article data from a parsed RSS feed into a list of dictionaries.
-
+    Extract article metadata from parsed feed.
+    
     Args:
-        feed: A parsed RSS feed object returned by feedparser.parse(),
-              containing feed metadata and a list of entry items.
-
+        feed: Parsed feed from feedparser
+        
     Returns:
-        A list of dictionaries, where each dictionary represents an article
-        with keys: 'title', 'url', 'description', 'published_date', 'source_name'.
-        Returns an empty list if the feed has no entries.
+        List of article dicts with:
+        - title (str)
+        - url (str)
+        - description (str or None)
+        - author (str or None)
+        - published_at (datetime object)
     """
     articles = []
+    
     if not feed.entries:
         logger.warning("Feed has zero entries")
         return articles
     
-    source_name = getattr(feed.feed, 'title', 'Unknown')
-    for article in feed.entries:
-        article_dict = {
-            'title': article.get('title', 'Unknown'),
-            'url': article.get('link', 'Unknown'),
-            'description': article.get('summary', 'Unknown'),
-            'published_date': article.get('published', 'Unknown'),
-            'source_name': source_name
-        }
-        articles.append(article_dict)
+    for entry in feed.entries:
+        try:
+            # Extract title (required)
+            title = entry.get('title', 'No Title')
+            
+            # Extract URL (required)
+            url = entry.get('link')
+            if not url:
+                logger.warning("Entry missing URL, skipping")
+                continue  # Skip entries without URL
+            
+            # Extract description (optional - None if missing)
+            description = entry.get('summary') or entry.get('description')
+            
+            # Extract author (optional - None if missing)
+            author = entry.get('author')
+            
+            # Extract and parse published date
+            published_str = entry.get('published') or entry.get('updated')
+            if published_str:
+                try:
+                    published_at = date_parser.parse(published_str)
+                except Exception as e:
+                    logger.warning(f"Failed to parse date '{published_str}': {e}")
+                    published_at = datetime.now()
+            else:
+                # No date provided, use current time
+                published_at = datetime.now()
+            
+            articles.append({
+                'title': title,
+                'url': url,
+                'description': description,
+                'author': author,
+                'published_at': published_at  # datetime object, not string!
+            })
+            
+        except Exception as e:
+            logger.warning(f"Failed to parse entry: {e}")
+            continue
     
     logger.info(f"Extracted {len(articles)} articles from feed")
     return articles
 
-def scrape_feeds(feed_urls: list[str]) -> list[dict]:
+
+def scrape_all_sources():
     """
-    Fetch and extract articles from multiple RSS feeds.
+    Scrape articles from all sources in database.
     
-    Args:
-        feed_urls: List of RSS feed URLs to scrape
-        
-    Returns:
-        Combined list of all articles from all feeds
+    This is the main entry point for the scraper.
+    Reads sources from database, fetches their feeds, and saves articles.
     """
-
-    logger.info("\nInitiating feed scraping...\n")
-    articles_collection = []
-    success_count = 0
-
-    for url in feed_urls:
-        feed = fetch_feed(url)
-        if feed:
+    logger.info("=" * 70)
+    logger.info("Starting RSS scraper...")
+    logger.info("=" * 70)
+    
+    # Get sources from database
+    sources = get_all_sources()
+    logger.info(f"Found {len(sources)} sources to scrape\n")
+    
+    total_inserted = 0
+    total_fetched = 0
+    failed_sources = []
+    
+    for i, source in enumerate(sources, 1):
+        try:
+            logger.info(f"[{i}/{len(sources)}] Scraping {source['name']}...")
+            
+            # Fetch RSS feed
+            feed = fetch_feed(source['url'])
+            
+            if not feed:
+                logger.error(f"Failed to fetch feed for {source['name']}")
+                failed_sources.append(source['name'])
+                continue
+            
+            # Extract articles
             articles = extract_articles(feed)
-            articles_collection.extend(articles)
-            success_count += 1
-        else:
-            logger.warning(f"Failed to extract feed from URL: {url}")
+            total_fetched += len(articles)
+            
+            if articles:
+                # Save to database
+                inserted = save_articles_batch(articles, source['id'])
+                total_inserted += inserted
+                
+                duplicates = len(articles) - inserted
+                logger.info(
+                    f"✅ {source['name']}: "
+                    f"{inserted} new, {duplicates} duplicates\n"
+                )
+            else:
+                logger.warning(f"No articles found for {source['name']}\n")
+                
+        except Exception as e:
+            logger.error(f"Failed to scrape {source['name']}: {e}\n")
+            failed_sources.append(source['name'])
+            continue
     
-    logger.info("\nScraping process finished:")
-    logger.info(f"Total feeds attempted: {len(feed_urls)}")
-    logger.info(f"Total feeds succeeded: {success_count}")
-    logger.info(f"Total articles collected: {len(articles_collection)}\n")
-    return articles_collection
-
-
-
-
+    # Final summary
+    logger.info("=" * 70)
+    logger.info("Scraping complete!")
+    logger.info("=" * 70)
+    logger.info(f"Sources processed: {len(sources)}")
+    logger.info(f"Articles fetched:  {total_fetched}")
+    logger.info(f"Articles inserted: {total_inserted}")
+    logger.info(f"Duplicates skip:   {total_fetched - total_inserted}")
+    if failed_sources:
+        logger.warning(f"Failed sources:    {', '.join(failed_sources)}")
+    logger.info("=" * 70)
+    
+    return total_inserted
 
 
 if __name__ == "__main__":
-
-    Config.setup_logging()
-    logger = logging.getLogger(__name__)
-    feed_urls = [
-    "https://feeds.bbci.co.uk/news/rss.xml",           # BBC News
-    "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",  # NY Times World
-    "https://feeds.reuters.com/reuters/topNews",       # Reuters
-    "https://www.aljazeera.com/xml/rss/all.xml"]        # Al Jazeera
-    
-    articles = scrape_feeds(feed_urls)
-    logger.info(f"Final Summary: Attempted {len(feed_urls)} feeds, Collected {len(articles)} articles.")
+    scrape_all_sources()
 
     
 
