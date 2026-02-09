@@ -1,112 +1,75 @@
-"""Database utility functions for common queries."""
-import psycopg2
-from typing import List, Dict, Optional, Tuple
-from config import Config
+"""Database utility functions using SQLAlchemy ORM."""
+from typing import List, Dict, Optional
+from datetime import datetime, timedelta
+from sqlalchemy import func, text, case
+from sqlalchemy.orm import joinedload
 import logging
+
+from database.models import Source, Article
+from database.db import get_session, get_session_no_commit
+from config import Config
 
 logger = logging.getLogger(__name__)
 
 
-def execute_query(query: str, params: Tuple = None, fetch_one: bool = False) -> List[Dict]:
+def get_all_sources() -> List[Dict]:
     """
-    Execute a SQL query and return results as list of dictionaries.
+    Get all sources from database using ORM.
     
-    Args:
-        query: SQL query string (use %s for parameters)
-        params: Tuple of parameters to substitute
-        fetch_one: If True, return single dict instead of list
-        
     Returns:
-        List of dictionaries (or single dict if fetch_one=True)
-        
-    Example:
-        results = execute_query(
-            "SELECT * FROM sources WHERE country = %s",
-            ('UK',)
-        )
+        List of source dictionaries
     """
-    conn = None
-    cursor = None
-    
+    session = get_session_no_commit()
     try:
-        # TODO: Connect to database
-        conn = psycopg2.connect(Config.DATABASE_URL)
-
-        # TODO: Create cursor
-        cursor = conn.cursor()
-
-        # TODO: Execute query with params
-        cursor.execute(query, params or ())
-
-        # TODO: Get column names from cursor.description
-        columns = [desc[0] for desc in cursor.description]
-
-        # TODO: Fetch results (fetchone() or fetchall())
-        if fetch_one:
-            row = cursor.fetchone()
-            if row:
-                return dict(zip(columns, row))
-            else:
-                return None
-        else:
-            # TODO: Convert to list of dictionaries
-            # TODO: Return results
-            rows = cursor.fetchall()
-            return [dict(zip(columns, row)) for row in rows]
+        sources = session.query(Source).order_by(Source.name).all()
         
-    except psycopg2.Error as e:
-        logger.error(f"Database query error: {e}")
-        logger.error(f"Query: {query}")
-        logger.error(f"Params: {params}")
-        raise
-        
+        # Convert to dicts
+        return [
+            {
+                'id': s.id,
+                'name': s.name,
+                'url': s.url,
+                'country': s.country,
+                'political_leaning': s.political_leaning
+            }
+            for s in sources
+        ]
     finally:
-        # TODO: Close cursor and connection
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-        pass
+        session.close()
 
 
 def get_recent_articles(limit: int = 20) -> List[Dict]:
     """
-    Get recent articles with source information.
+    Get recent articles with source information using ORM.
     
     Args:
-        limit: Maximum number of articles to return (default: 20)
+        limit: Maximum number of articles
         
     Returns:
-        List of article dictionaries with keys:
-        - title
-        - url
-        - published_at
-        - source_name
-        - country
-        - political_leaning
+        List of article dictionaries
+    """
+    session = get_session_no_commit()
+    try:
+        # Eager load source to avoid N+1 queries
+        articles = session.query(Article)\
+            .options(joinedload(Article.source))\
+            .order_by(Article.published_at.desc())\
+            .limit(limit)\
+            .all()
         
-    Example:
-        articles = get_recent_articles(5)
-        for article in articles:
-            print(f"{article['title']} from {article['source_name']}")
-    """
-    query = """
-        SELECT
-            a.title,
-            a.url,
-            a.published_at,
-            s.name AS source_name,
-            s.country,
-            s.political_leaning
-        FROM articles a
-        JOIN sources s ON a.source_id = s.id
-        ORDER BY a.published_at DESC
-        LIMIT %s
-    """
-    
-    # TODO: Call execute_query with the query and (limit,) as params
-    # TODO: Return the results
-    return execute_query(query, (limit,))
+        return [
+            {
+                'title': a.title,
+                'url': a.url,
+                'published_at': a.published_at,
+                'source_name': a.source.name,
+                'country': a.source.country,
+                'political_leaning': a.source.political_leaning
+            }
+            for a in articles
+        ]
+    finally:
+        session.close()
 
 
 def get_source_stats() -> List[Dict]:
@@ -114,30 +77,39 @@ def get_source_stats() -> List[Dict]:
     Get article count statistics for all sources.
     
     Returns:
-        List of source statistics with keys:
-        - source_name
-        - total_articles
-        - articles_last_7d
-        
-    Example:
-        stats = get_source_stats()
-        for stat in stats:
-            print(f"{stat['source_name']}: {stat['total_articles']} total, "
-                  f"{stat['articles_last_7d']} in last 7 days")
-    """
-    query = """
-        SELECT
-            s.name AS source_name,
-            COUNT(a.id) AS total_articles,
-            COUNT(CASE WHEN a.published_at > NOW() - INTERVAL '7 days' THEN 1 END) AS articles_last_7d
-        FROM sources s
-        LEFT JOIN articles a ON s.id = a.source_id
-        GROUP BY s.id, s.name
-        ORDER BY total_articles DESC
-    """
+        List of source statistics
+    """ 
     
-    # TODO: Call execute_query
-    return execute_query(query)
+    session = get_session_no_commit()
+    try:
+        seven_days_ago = datetime.now() - timedelta(days=7)
+        
+        # Query with aggregation
+        stats = session.query(
+            Source.name.label('source_name'),
+            func.count(Article.id).label('total_articles'),
+            func.sum(
+                case(
+                    (Article.published_at > seven_days_ago, 1),
+                    else_=0
+                )
+            ).label('articles_last_7d')
+        )\
+            .outerjoin(Article)\
+            .group_by(Source.id, Source.name)\
+            .order_by(func.count(Article.id).desc())\
+            .all()
+        
+        return [
+            {
+                'source_name': stat.source_name,
+                'total_articles': stat.total_articles,
+                'articles_last_7d': int(stat.articles_last_7d or 0)
+            }
+            for stat in stats
+        ]
+    finally:
+        session.close()
 
 
 def get_inactive_sources(hours: int = 24) -> List[Dict]:
@@ -145,33 +117,40 @@ def get_inactive_sources(hours: int = 24) -> List[Dict]:
     Find sources with no articles in the last N hours.
     
     Args:
-        hours: Time window to check (default: 24)
+        hours: Time window to check
         
     Returns:
-        List of inactive sources with keys:
-        - source_name
-        - url
-        - last_article_date (may be None)
+        List of inactive sources
+    """
+    session = get_session_no_commit()
+    try:
+        cutoff_time = datetime.now() - timedelta(hours=hours)
         
-    Example:
-        inactive = get_inactive_sources(hours=48)
-        for source in inactive:
-            print(f"{source['source_name']} - last article: {source['last_article_date']}")
-    """
-    query = """
-        SELECT
-            s.name AS source_name,
-            s.url,
-            MAX(a.published_at) AS last_article_date
-        FROM sources s
-        LEFT JOIN articles a ON s.id = a.source_id
-        GROUP BY s.id, s.name, s.url
-        HAVING MAX(a.published_at) IS NULL OR MAX(a.published_at) < NOW() - INTERVAL '1 hour' * %s
-        ORDER BY last_article_date ASC NULLS FIRST
-    """
-    
-    # TODO: Call execute_query with (hours,) as params
-    return execute_query(query, (hours,))
+        # Subquery for last article date
+        stats = session.query(
+            Source.name.label('source_name'),
+            Source.url,
+            func.max(Article.published_at).label('last_article_date')
+        )\
+            .outerjoin(Article)\
+            .group_by(Source.id, Source.name, Source.url)\
+            .having(
+                (func.max(Article.published_at) == None) |
+                (func.max(Article.published_at) < cutoff_time)
+            )\
+            .order_by(func.max(Article.published_at).asc())\
+            .all()
+        
+        return [
+            {
+                'source_name': stat.source_name,
+                'url': stat.url,
+                'last_article_date': stat.last_article_date
+            }
+            for stat in stats
+        ]
+    finally:
+        session.close()
 
 
 def get_duplicate_stories() -> List[Dict]:
@@ -179,38 +158,45 @@ def get_duplicate_stories() -> List[Dict]:
     Find articles with identical titles from different sources.
     
     Returns:
-        List of duplicate pairs with keys:
-        - title
-        - source1
-        - source2
-        - url1
-        - url2
-        - published1
-        - published2
+        List of duplicate pairs
+    """
+    session = get_session_no_commit()
+    try:
+        # Self-join to find duplicates
+        a1 = session.query(Article).subquery('a1')
+        a2 = session.query(Article).subquery('a2')
+        s1 = session.query(Source).subquery('s1')
+        s2 = session.query(Source).subquery('s2')
         
-    Example:
-        duplicates = get_duplicate_stories()
-        for dup in duplicates:
-            print(f"'{dup['title']}' covered by {dup['source1']} and {dup['source2']}")
-    """
-    query = """
-        SELECT
-            a1.title,
-            s1.name AS source1,
-            s2.name AS source2,
-            a1.url AS url1,
-            a2.url AS url2,
-            a1.published_at AS published1,
-            a2.published_at AS published2
-        FROM articles a1
-        JOIN articles a2 ON a1.title = a2.title AND a1.id < a2.id
-        JOIN sources s1 ON a1.source_id = s1.id
-        JOIN sources s2 ON a2.source_id = s2.id
-        ORDER BY a1.title
-    """
-    
-    # TODO: Call execute_query
-    return execute_query(query)
+        duplicates = session.query(
+            a1.c.title,
+            s1.c.name.label('source1'),
+            s2.c.name.label('source2'),
+            a1.c.url.label('url1'),
+            a2.c.url.label('url2'),
+            a1.c.published_at.label('published1'),
+            a2.c.published_at.label('published2')
+        )\
+            .join(a2, (a1.c.title == a2.c.title) & (a1.c.id < a2.c.id))\
+            .join(s1, a1.c.source_id == s1.c.id)\
+            .join(s2, a2.c.source_id == s2.c.id)\
+            .order_by(a1.c.title)\
+            .all()
+        
+        return [
+            {
+                'title': dup.title,
+                'source1': dup.source1,
+                'source2': dup.source2,
+                'url1': dup.url1,
+                'url2': dup.url2,
+                'published1': dup.published1,
+                'published2': dup.published2
+            }
+            for dup in duplicates
+        ]
+    finally:
+        session.close()
 
 
 def get_articles_by_source(source_name: str, days: int = 7) -> List[Dict]:
@@ -218,127 +204,83 @@ def get_articles_by_source(source_name: str, days: int = 7) -> List[Dict]:
     Get articles from a specific source within the last N days.
     
     Args:
-        source_name: Name of the source (e.g., "BBC News")
-        days: Number of days to look back (default: 7)
+        source_name: Name of the source
+        days: Number of days to look back
         
     Returns:
-        List of articles from that source
+        List of articles
+    """
+    session = get_session_no_commit()
+    try:
+        cutoff_date = datetime.now() - timedelta(days=days)
         
-    Example:
-        bbc_articles = get_articles_by_source("BBC News", days=30)
-    """
-    query = """
-        SELECT
-            a.title,
-            a.url,
-            a.published_at,
-            s.name AS source_name,
-            s.country,
-            s.political_leaning
-        FROM articles a
-        JOIN sources s ON a.source_id = s.id
-        WHERE s.name = %s 
-          AND a.published_at >= NOW() - INTERVAL '1 day' * %s
-        ORDER BY a.published_at DESC
-    """
-    
-    # TODO: Call execute_query with (source_name, days) as params
-    return execute_query(query, (source_name, days))
-
-def get_all_sources() -> List[Dict]:
-    """
-    Get all sources from database.
-    
-    Returns:
-        List of sources with keys: id, name, url, country, political_leaning
+        articles = session.query(Article)\
+            .join(Source)\
+            .filter(
+                Source.name == source_name,
+                Article.published_at >= cutoff_date
+            )\
+            .order_by(Article.published_at.desc())\
+            .all()
         
-    Example:
-        sources = get_all_sources()
-        for source in sources:
-            print(f"Scraping {source['name']} from {source['url']}")
-    """
-    query = """
-        SELECT id, name, url, country, political_leaning
-        FROM sources
-        ORDER BY name
-    """
-    
-    return execute_query(query)
+        return [
+            {
+                'title': a.title,
+                'url': a.url,
+                'published_at': a.published_at,
+                'source_name': source_name,
+                'country': a.source.country,
+                'political_leaning': a.source.political_leaning
+            }
+            for a in articles
+        ]
+    finally:
+        session.close()
 
 
 def save_articles_batch(articles: List[Dict], source_id: int) -> int:
     """
-    Save multiple articles to database in a transaction.
+    Save multiple articles to database.
     
-    Duplicates (same URL) are automatically skipped via ON CONFLICT.
+    Uses raw SQL for bulk insert with ON CONFLICT (most efficient).
     
     Args:
-        articles: List of article dicts with keys:
-                  - title (required)
-                  - url (required)
-                  - description (optional)
-                  - content (optional)
-                  - author (optional)
-                  - published_at (required)
-        source_id: ID of the source these articles belong to
+        articles: List of article dicts
+        source_id: ID of the source
         
     Returns:
-        Number of articles inserted (excludes duplicates)
-        
-    Example:
-        articles = [
-            {'title': '...', 'url': '...', 'published_at': datetime(...), ...},
-        ]
-        inserted = save_articles_batch(articles, source_id=1)
-        print(f"Inserted {inserted} new articles")
+        Number of articles inserted
     """
-
     if not articles:
         return 0
     
-    conn = None
-    cursor = None
-
-    try:
-        conn = psycopg2.connect(Config.DATABASE_URL)
-        cursor = conn.cursor()
-
-        # Prepare data as list of tuples for executemany
-        data = []
-        for article in articles:
-            data.append((
-                source_id,
-                article['title'],
-                article.get('description'),
-                article.get('content'),
-                article.get('author'),
-                article['published_at'],
-                article['url']
-            ))
+    # For bulk inserts with deduplication, raw SQL is still best
+    with get_session() as session:
+        # Prepare data
+        data = [
+            {
+                'source_id': source_id,
+                'title': article['title'],
+                'description': article.get('description'),
+                'content': article.get('content'),
+                'author': article.get('author'),
+                'published_at': article['published_at'],
+                'url': article['url']
+            }
+            for article in articles
+        ]
         
-        # Batch insert with duplicate handling
-        insert_query = """
-            INSERT INTO articles (source_id, title, description, content, author, published_at, url)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        # Use raw SQL with ON CONFLICT for efficiency
+        result = session.execute(text("""
+            INSERT INTO articles 
+                (source_id, title, description, content, author, published_at, url)
+            VALUES 
+                (:source_id, :title, :description, :content, :author, :published_at, :url)
             ON CONFLICT (url) DO NOTHING
-        """
-        cursor.executemany(insert_query, data)
-
-        # How many were actually inserted?
-        inserted_count = cursor.rowcount
-        conn.commit()
-
+        """), data)
+        
+        # Get count of inserted rows
+        inserted_count = result.rowcount
+        
         logger.info(f"Saved {inserted_count} new articles (source_id={source_id})")
         return inserted_count
-    
-    except psycopg2.Error as e:
-        logger.error(f"Failed to save articles: {e}")
-        if conn:
-            conn.rollback()
-        raise
-        
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
