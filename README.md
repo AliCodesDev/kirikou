@@ -15,18 +15,22 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 
 ## 📊 Project Status
 
-🚧 **Week 4, Day 24 of 12-Week Build** | Phase: Database Integration Complete
+🚧 **Week 4, Day 25 of 12-Week Build** | Phase: Database Layer Complete (SQLAlchemy ORM)
 
 ### ✅ Completed Features
 
 **The Memory Layer (Database)**
 
 - ✅ PostgreSQL schema with referential integrity
+- ✅ **SQLAlchemy ORM with declarative models**
+- ✅ **Type-safe database operations with Python classes**
+- ✅ **Automatic relationship navigation (source.articles, article.source)**
 - ✅ Automatic deduplication (UNIQUE constraint on article URLs)
 - ✅ Strategic indexes for query performance optimization
 - ✅ Transaction-based operations with proper error handling
 - ✅ Advanced SQL queries (JOINs, aggregations, analytics)
-- ✅ Reusable database utilities with dictionary-based results
+- ✅ Reusable database utilities with ORM and dictionary-based results
+- ✅ Session management with context managers
 
 **The Senses (Data Ingestion)**
 
@@ -52,7 +56,7 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 
 ### 🎯 Next Up
 
-- **Day 25:** SQLAlchemy ORM implementation
+- **Day 26:** NoSQL databases (MongoDB, Redis) overview
 - **Week 5:** Flask REST API for data access
 - **Week 6:** FastAPI migration with async workers (Celery)
 - **Week 11:** LLM integration for RAG-based bias analysis
@@ -109,13 +113,16 @@ Kirikou is built as a modular system following clean architecture principles:
 
 - **Python 3.10+** - Modern Python with type hints
 - **PostgreSQL 16** - Production-grade relational database
-- **psycopg2** - PostgreSQL adapter for Python
+- **SQLAlchemy** - Modern ORM for database operations
+- **psycopg2** - PostgreSQL adapter (SQLAlchemy driver)
 
 ### Python Libraries
 
+- **sqlalchemy** - Modern ORM for database operations
 - **feedparser** - RSS/Atom feed parsing
 - **requests** - HTTP client for fetching feeds
 - **python-dateutil** - Robust date parsing
+- **psycopg2-binary** - PostgreSQL driver for SQLAlchemy
 - **logging** - Comprehensive application logging
 
 ### Planned Technologies
@@ -178,6 +185,82 @@ CREATE INDEX idx_articles_source_date ON articles(source_id, published_at DESC);
 
 -- Duplicate detection optimization
 CREATE INDEX idx_articles_title ON articles(title);
+```
+
+---
+
+## 🐍 SQLAlchemy ORM Models
+
+Kirikou uses SQLAlchemy's declarative ORM for type-safe, Pythonic database operations.
+
+### Source Model
+
+```python
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import relationship
+
+class Source(Base):
+    __tablename__ = 'sources'
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    url = Column(String, nullable=False)
+    country = Column(String)
+    political_leaning = Column(String)
+    
+    # Relationship: One source has many articles
+    articles = relationship('Article', back_populates='source')
+```
+
+### Article Model
+
+```python
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
+
+class Article(Base):
+    __tablename__ = 'articles'
+    
+    id = Column(Integer, primary_key=True)
+    source_id = Column(Integer, ForeignKey('sources.id'), nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(Text)
+    content = Column(Text)
+    author = Column(String)
+    published_at = Column(DateTime, nullable=False)
+    scraped_at = Column(DateTime, default=datetime.now)
+    url = Column(String, unique=True, nullable=False)
+    
+    # Relationship: Many articles belong to one source
+    source = relationship('Source', back_populates='articles')
+```
+
+### ORM Benefits
+
+- **Type Safety**: IDE autocompletion and type checking
+- **Automatic Relationships**: `article.source.name` automatically JOINs
+- **Cleaner Code**: 40% less boilerplate vs raw SQL
+- **Database Agnostic**: Easy to switch databases
+- **Session Management**: Automatic commit/rollback/close
+- **Pythonic**: Work with objects, not SQL strings
+
+### Example Usage
+
+```python
+from database import get_session, Article, Source
+from sqlalchemy.orm import joinedload
+
+# Query with relationship
+with get_session() as session:
+    articles = session.query(Article)\
+        .options(joinedload(Article.source))\
+        .filter(Article.published_at >= datetime(2026, 2, 1))\
+        .order_by(Article.published_at.desc())\
+        .limit(20)\
+        .all()
+    
+    for article in articles:
+        print(f"{article.title} from {article.source.name}")
 ```
 
 ---
@@ -292,7 +375,7 @@ Duplicates skip:   0
 
 ### Querying Data with Utilities
 
-The project includes powerful query utilities that return clean dictionary results:
+The project includes powerful query utilities powered by SQLAlchemy ORM that return clean dictionary results:
 
 ```python
 from database.utils import (
@@ -321,6 +404,28 @@ for dup in duplicates:
 inactive = get_inactive_sources(hours=24)
 for source in inactive:
     print(f"⚠️ {source['source_name']} - Last article: {source['last_article_date']}")
+```
+
+### Direct ORM Queries
+
+Work directly with Python objects using SQLAlchemy:
+
+```python
+from database import get_session, Article, Source
+from sqlalchemy.orm import joinedload
+
+# Query with automatic relationship loading
+with get_session() as session:
+    articles = session.query(Article)\
+        .options(joinedload(Article.source))\
+        .filter(Article.published_at >= datetime(2026, 2, 1))\
+        .order_by(Article.published_at.desc())\
+        .limit(10)\
+        .all()
+    
+    for article in articles:
+        # Access related source without additional query
+        print(f"{article.title} from {article.source.name}")
 ```
 
 ### Direct Database Queries
@@ -461,8 +566,10 @@ Example output:
 - [x] RSS feed scraper with error handling
 - [x] PostgreSQL database with deduplication
 - [x] Strategic indexes for performance
+- [x] SQLAlchemy ORM with declarative models
+- [x] Type-safe database operations
 - [x] Reusable database utilities
-- [x] Transaction-based operations
+- [x] Transaction-based operations with session management
 
 ### Phase 2: The Interface (🚧 Week 5)
 
@@ -633,7 +740,7 @@ This project is part of a **12-week Python Backend Development Journey** buildin
 - **Week 11:** Cloud deployment and LLM integration
 - **Week 12:** Final polish and production deployment
 
-**Progress:** Currently on Day 24 of 84 (29% complete)
+**Progress:** Currently on Day 25 of 84 (30% complete)
 
 ---
 
