@@ -49,7 +49,7 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 
 ### 📈 Current Data
 
-- **406 articles** ingested from 10 global news sources
+- **842 articles** ingested from 10 global news sources
 - **Political spectrum coverage:** Center, Center-Left, Right, Tech-Focus
 - **Geographic diversity:** UK, US, Germany, Qatar
 - **Deduplication:** Automatically skips duplicate URLs
@@ -498,19 +498,6 @@ Kirikou currently ingests from **10 validated sources** across the political spe
 - **UK:** BBC News, The Guardian
 - **US:** CNN, Fox News, NPR, NYT, TechCrunch, Ars Technica
 - **International:** Al Jazeera (Qatar), Deutsche Welle (Germany)
-
-### Feed Statistics (Current Snapshot)
-
-- **Deutsche Welle:** 137 articles (largest feed)
-- **CNN:** 50 articles
-- **The Guardian:** 45 articles
-- **BBC News:** 38 articles
-- **The New York Times:** 36 articles
-- **Al Jazeera:** 25 articles
-- **Fox News:** 25 articles
-- **Ars Technica:** 20 articles
-- **TechCrunch:** 20 articles
-- **NPR:** 10 articles
 
 ---
 
