@@ -7,8 +7,9 @@ Provides:
 - get_session(): Context manager for transactions
 """
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from collections.abc import Generator
 from contextlib import contextmanager
+from sqlalchemy.orm import sessionmaker, Session
 from config import Config
 import logging
 
@@ -31,7 +32,7 @@ SessionLocal = sessionmaker(
 
 
 @contextmanager
-def get_session() -> Session:
+def get_session() -> Generator[Session]:
     """
     Provide a transactional session.
     
@@ -58,18 +59,25 @@ def get_session() -> Session:
         logger.debug("Session closed")
 
 
-def get_session_no_commit() -> Session:
+@contextmanager
+def get_session_no_commit() -> Generator[Session]:
     """
-    Get a session without automatic commit (for read-only operations).
-    
+    Provide a read-only session (no automatic commit).
+
     Usage:
-        session = get_session_no_commit()
-        try:
+        with get_session_no_commit() as session:
             articles = session.query(Article).all()
-        finally:
-            session.close()
-    
-    Returns:
+
+    Yields:
         Session: Database session
     """
-    return SessionLocal()
+    session = SessionLocal()
+    try:
+        yield session
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Session rollback due to error: {e}")
+        raise
+    finally:
+        session.close()
+        logger.debug("Session closed")

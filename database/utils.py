@@ -1,7 +1,7 @@
 """Database utility functions using SQLAlchemy ORM."""
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, cast
 from datetime import datetime, timedelta
-from sqlalchemy import func, text, case
+from sqlalchemy import CursorResult, func, text, case
 from sqlalchemy.orm import joinedload
 import logging
 
@@ -19,10 +19,9 @@ def get_all_sources() -> List[Dict]:
     Returns:
         List of source dictionaries
     """
-    session = get_session_no_commit()
-    try:
+    with get_session_no_commit() as session:
         sources = session.query(Source).order_by(Source.name).all()
-        
+
         # Convert to dicts
         return [
             {
@@ -34,8 +33,6 @@ def get_all_sources() -> List[Dict]:
             }
             for s in sources
         ]
-    finally:
-        session.close()
 
 
 def get_recent_articles(limit: int = 20) -> List[Dict]:
@@ -48,15 +45,14 @@ def get_recent_articles(limit: int = 20) -> List[Dict]:
     Returns:
         List of article dictionaries
     """
-    session = get_session_no_commit()
-    try:
+    with get_session_no_commit() as session:
         # Eager load source to avoid N+1 queries
         articles = session.query(Article)\
             .options(joinedload(Article.source))\
             .order_by(Article.published_at.desc())\
             .limit(limit)\
             .all()
-        
+
         return [
             {
                 'title': a.title,
@@ -68,8 +64,6 @@ def get_recent_articles(limit: int = 20) -> List[Dict]:
             }
             for a in articles
         ]
-    finally:
-        session.close()
 
 
 def get_source_stats() -> List[Dict]:
@@ -80,10 +74,9 @@ def get_source_stats() -> List[Dict]:
         List of source statistics
     """ 
     
-    session = get_session_no_commit()
-    try:
+    with get_session_no_commit() as session:
         seven_days_ago = datetime.now() - timedelta(days=7)
-        
+
         # Query with aggregation
         stats = session.query(
             Source.name.label('source_name'),
@@ -99,7 +92,7 @@ def get_source_stats() -> List[Dict]:
             .group_by(Source.id, Source.name)\
             .order_by(func.count(Article.id).desc())\
             .all()
-        
+
         return [
             {
                 'source_name': stat.source_name,
@@ -108,8 +101,6 @@ def get_source_stats() -> List[Dict]:
             }
             for stat in stats
         ]
-    finally:
-        session.close()
 
 
 def get_inactive_sources(hours: int = 24) -> List[Dict]:
@@ -122,10 +113,9 @@ def get_inactive_sources(hours: int = 24) -> List[Dict]:
     Returns:
         List of inactive sources
     """
-    session = get_session_no_commit()
-    try:
+    with get_session_no_commit() as session:
         cutoff_time = datetime.now() - timedelta(hours=hours)
-        
+
         # Subquery for last article date
         stats = session.query(
             Source.name.label('source_name'),
@@ -140,7 +130,7 @@ def get_inactive_sources(hours: int = 24) -> List[Dict]:
             )\
             .order_by(func.max(Article.published_at).asc())\
             .all()
-        
+
         return [
             {
                 'source_name': stat.source_name,
@@ -149,8 +139,6 @@ def get_inactive_sources(hours: int = 24) -> List[Dict]:
             }
             for stat in stats
         ]
-    finally:
-        session.close()
 
 
 def get_duplicate_stories() -> List[Dict]:
@@ -160,14 +148,13 @@ def get_duplicate_stories() -> List[Dict]:
     Returns:
         List of duplicate pairs
     """
-    session = get_session_no_commit()
-    try:
+    with get_session_no_commit() as session:
         # Self-join to find duplicates
         a1 = session.query(Article).subquery('a1')
         a2 = session.query(Article).subquery('a2')
         s1 = session.query(Source).subquery('s1')
         s2 = session.query(Source).subquery('s2')
-        
+
         duplicates = session.query(
             a1.c.title,
             s1.c.name.label('source1'),
@@ -182,7 +169,7 @@ def get_duplicate_stories() -> List[Dict]:
             .join(s2, a2.c.source_id == s2.c.id)\
             .order_by(a1.c.title)\
             .all()
-        
+
         return [
             {
                 'title': dup.title,
@@ -195,8 +182,6 @@ def get_duplicate_stories() -> List[Dict]:
             }
             for dup in duplicates
         ]
-    finally:
-        session.close()
 
 
 def get_articles_by_source(source_name: str, days: int = 7) -> List[Dict]:
@@ -210,10 +195,9 @@ def get_articles_by_source(source_name: str, days: int = 7) -> List[Dict]:
     Returns:
         List of articles
     """
-    session = get_session_no_commit()
-    try:
+    with get_session_no_commit() as session:
         cutoff_date = datetime.now() - timedelta(days=days)
-        
+
         articles = session.query(Article)\
             .join(Source)\
             .filter(
@@ -222,7 +206,7 @@ def get_articles_by_source(source_name: str, days: int = 7) -> List[Dict]:
             )\
             .order_by(Article.published_at.desc())\
             .all()
-        
+
         return [
             {
                 'title': a.title,
@@ -234,8 +218,6 @@ def get_articles_by_source(source_name: str, days: int = 7) -> List[Dict]:
             }
             for a in articles
         ]
-    finally:
-        session.close()
 
 
 def save_articles_batch(articles: List[Dict], source_id: int) -> int:
@@ -271,16 +253,180 @@ def save_articles_batch(articles: List[Dict], source_id: int) -> int:
         ]
         
         # Use raw SQL with ON CONFLICT for efficiency
-        result = session.execute(text("""
-            INSERT INTO articles 
+        result = cast(CursorResult, session.execute(text("""
+            INSERT INTO articles
                 (source_id, title, description, content, author, published_at, url)
-            VALUES 
+            VALUES
                 (:source_id, :title, :description, :content, :author, :published_at, :url)
             ON CONFLICT (url) DO NOTHING
-        """), data)
-        
+        """), data))
+
         # Get count of inserted rows
         inserted_count = result.rowcount
         
         logger.info(f"Saved {inserted_count} new articles (source_id={source_id})")
         return inserted_count
+    
+
+
+def create_source(source: dict) -> Dict:
+    """
+    Create a new source in the database.
+    
+    Args:
+        source: Source data dictionary
+        
+    Returns:
+        Created source dictionary
+    """
+    with get_session() as session:
+        new_source = Source(
+            name=source['name'],
+            url=source['url'],
+            country=source.get('country'),
+            political_leaning=source.get('political_leaning')
+        )
+        session.add(new_source)
+        session.commit()
+        session.refresh(new_source)
+        
+        return {
+            'id': new_source.id,
+            'name': new_source.name,
+            'url': new_source.url,
+            'country': new_source.country,
+            'political_leaning': new_source.political_leaning
+        }
+
+
+def get_source_by_id(source_id: int) -> Optional[Dict]:
+    """
+    Get a source by its ID.
+    
+    Args:
+        source_id: ID of the source
+        
+    Returns:
+        Source dictionary or None if not found
+    """
+    with get_session_no_commit() as session:
+        source = session.query(Source).filter(Source.id == source_id).first()
+        if source:
+            return {
+                'id': source.id,
+                'name': source.name,
+                'url': source.url,
+                'country': source.country,
+                'political_leaning': source.political_leaning
+            }
+        else:
+            return None
+
+
+def update_source(source_id: int, source_data: dict) -> Optional[Dict]:
+    """
+    Update an existing source.
+    
+    Args:
+        source_id: ID of the source to update
+        source_data: Dictionary with updated source data
+        
+    Returns:
+        Updated source dictionary or None if not found
+    """
+    with get_session() as session:
+        source = session.query(Source).filter(Source.id == source_id).first()
+        if not source:
+            return None
+        
+        # Update fields
+        source.name = source_data.get('name', source.name)
+        source.url = source_data.get('url', source.url)
+        source.country = source_data.get('country', source.country)
+        source.political_leaning = source_data.get('political_leaning', source.political_leaning)
+        
+        session.commit()
+        session.refresh(source)
+        
+        return {
+            'id': source.id,
+            'name': source.name,
+            'url': source.url,
+            'country': source.country,
+            'political_leaning': source.political_leaning
+        }
+
+
+def delete_articles_by_source(source_id: int) -> int:
+    """
+    Delete all articles from a specific source.
+    
+    Args:
+        source_id: ID of the source
+    Returns:
+        Number of articles deleted
+    """
+    with get_session() as session:
+        result = cast(CursorResult, session.execute(
+            text("DELETE FROM articles WHERE source_id = :source_id"),
+            {'source_id': source_id}
+        ))
+        deleted_count = result.rowcount
+        logger.info(f"Deleted {deleted_count} articles for source_id={source_id}")
+        return deleted_count
+    
+def delete_source(source_id: int) -> bool:
+    """
+    Delete a source and its articles from the database.
+    
+    Args:
+        source_id: ID of the source to delete
+    Returns:
+        True if source was deleted, False if not found
+    """
+    with get_session() as session:
+        # First delete articles (if not using ON DELETE CASCADE)
+        session.execute(
+            text("DELETE FROM articles WHERE source_id = :source_id"),
+            {'source_id': source_id}
+        )
+        
+        # Then delete the source
+        result = cast(CursorResult, session.execute(
+            text("DELETE FROM sources WHERE id = :source_id"),
+            {'source_id': source_id}
+        ))
+        deleted_count = result.rowcount
+        if deleted_count > 0:
+            logger.info(f"Deleted source_id={source_id} and its articles")
+            return True
+        else:
+            logger.warning(f"Source with id={source_id} not found for deletion")
+            return False
+        
+
+def get_article_by_id(article_id: int) -> Optional[Dict]:
+    """
+    Get an article by its ID.
+    
+    Args:
+        article_id: ID of the article
+        
+    Returns:
+        Article dictionary or None if not found
+    """
+    with get_session_no_commit() as session:
+        article = session.query(Article).options(joinedload(Article.source)).filter(Article.id == article_id).first()
+        if article:
+            return {
+                'id': article.id,
+                'title': article.title,
+                'url': article.url,
+                'published_at': article.published_at,
+                'source_name': article.source.name,
+                'country': article.source.country,
+                'political_leaning': article.source.political_leaning
+            }
+        else:
+            return None
+        
