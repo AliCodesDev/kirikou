@@ -184,7 +184,7 @@ def get_duplicate_stories() -> List[Dict]:
         ]
 
 
-def get_articles_by_source(source_name: str, days: int = 7) -> List[Dict]:
+def get_articles_by_source(source_name: str, days: int = 7, limit: int = 500) -> List[Dict]:
     """
     Get articles from a specific source within the last N days.
     
@@ -205,6 +205,7 @@ def get_articles_by_source(source_name: str, days: int = 7) -> List[Dict]:
                 Article.published_at >= cutoff_date
             )\
             .order_by(Article.published_at.desc())\
+            .limit(limit)\
             .all()
 
         return [

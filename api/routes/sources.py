@@ -4,21 +4,20 @@ from database import utils as db_utils
 router = APIRouter(prefix="/sources", tags=["Sources"])
 
 @router.get("/")
-def get_sources(limit: int = 20):
+def get_sources():
     """Endpoint to retrieve all news sources."""
-    if limit < 1 or limit > 500:
-        raise HTTPException(status_code=400, detail="Limit must be between 1 and 500")
-    elif not db_utils.get_all_sources():
+    sources = db_utils.get_all_sources()
+    if not sources:
         raise HTTPException(status_code=404, detail="No sources found")
-    return db_utils.get_all_sources()
+    return sources
 
 @router.get("/{source_id}")
 def get_source(source_id: int):
     """Endpoint to retrieve a specific news source by ID."""
-    # Placeholder implementation
-    if not db_utils.get_source_by_id(source_id):
+    source = db_utils.get_source_by_id(source_id)
+    if not source:
         raise HTTPException(status_code=404, detail="Source not found")
-    return db_utils.get_source_by_id(source_id)
+    return source
 
 # @router.post("/")
 # def create_source(source_data: dict):
