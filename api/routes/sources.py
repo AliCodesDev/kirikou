@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException
 from database import utils as db_utils
+from database.schemas import SourceResponse, SourceCreate, SourceUpdate
 
 router = APIRouter(prefix="/sources", tags=["Sources"])
 
-@router.get("/")
+@router.get("/", response_model=list[SourceResponse])
 def get_sources():
     """Endpoint to retrieve all news sources."""
     sources = db_utils.get_all_sources()
@@ -11,7 +12,7 @@ def get_sources():
         raise HTTPException(status_code=404, detail="No sources found")
     return sources
 
-@router.get("/{source_id}")
+@router.get("/{source_id}", response_model=SourceResponse)
 def get_source(source_id: int):
     """Endpoint to retrieve a specific news source by ID."""
     source = db_utils.get_source_by_id(source_id)

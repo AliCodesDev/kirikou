@@ -55,12 +55,15 @@ def get_recent_articles(limit: int = 20) -> List[Dict]:
 
         return [
             {
+                'id': a.id,
                 'title': a.title,
                 'url': a.url,
                 'published_at': a.published_at,
-                'source_name': a.source.name,
-                'country': a.source.country,
-                'political_leaning': a.source.political_leaning
+                'source': {
+                    'id': a.source.id,
+                    'name': a.source.name,
+                    'political_leaning': a.source.political_leaning
+                }
             }
             for a in articles
         ]
@@ -210,12 +213,15 @@ def get_articles_by_source(source_name: str, days: int = 7, limit: int = 500) ->
 
         return [
             {
+                'id': a.id,
                 'title': a.title,
                 'url': a.url,
                 'published_at': a.published_at,
-                'source_name': source_name,
-                'country': a.source.country,
-                'political_leaning': a.source.political_leaning
+                'source': {
+                    'id': a.source.id,
+                    'name': a.source.name,
+                    'political_leaning': a.source.political_leaning
+                }
             }
             for a in articles
         ]
@@ -424,9 +430,14 @@ def get_article_by_id(article_id: int) -> Optional[Dict]:
                 'title': article.title,
                 'url': article.url,
                 'published_at': article.published_at,
-                'source_name': article.source.name,
-                'country': article.source.country,
-                'political_leaning': article.source.political_leaning
+                'description': article.description,
+                'author': article.author,
+                'scraped_at': article.scraped_at,
+                'source': {
+                    'id': article.source.id,
+                    'name': article.source.name,
+                    'political_leaning': article.source.political_leaning
+                }
             }
         else:
             return None
