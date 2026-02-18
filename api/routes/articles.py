@@ -6,7 +6,7 @@ from database.schemas import ArticleResponse, ArticleDetail, SourceStats
 
 router = APIRouter(prefix="/articles", tags=["Articles"])
 
-@router.get("/", response_model=list[ArticleResponse])
+@router.get("/", response_model=list[ArticleResponse], status_code=200)
 def get_articles(limit: int =  Query(default=20, ge=1, le=500), days: int = Query(default=7, ge=1, le=30), source_name: str | None = None):
     """Endpoint to retrieve all articles."""
     if not source_name:
@@ -21,7 +21,7 @@ def get_article_stats():
     return db_utils.get_source_stats()
 
 
-@router.get("/{article_id}", response_model=ArticleDetail)
+@router.get("/{article_id}", response_model=ArticleDetail, status_code=200)
 def get_article(article_id: int):
     """Endpoint to retrieve a specific article by ID."""
     article = db_utils.get_article_by_id(article_id)

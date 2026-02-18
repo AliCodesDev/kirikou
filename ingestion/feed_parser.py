@@ -178,6 +178,53 @@ def scrape_all_sources():
     return total_inserted
 
 
+def scrape_source_by_id(source_id: int):
+    """
+    Scrape articles from a single source by ID.
+    
+    Args:
+        source_id: ID of the source to scrape
+    """
+    logger.info(f"Starting scrape for source ID {source_id}...")
+    
+    # Get source from database
+    sources = get_all_sources()
+    source = next((s for s in sources if s['id'] == source_id), None)
+    
+    if not source:
+        logger.error(f"Source with ID {source_id} not found")
+        return 0
+    
+    try:
+        # Fetch RSS feed
+        feed = fetch_feed(source['url'])
+        
+        if not feed:
+            logger.error(f"Failed to fetch feed for {source['name']}")
+            return 0
+        
+        # Extract articles
+        articles = extract_articles(feed)
+        
+        if articles:
+            # Save to database
+            inserted = save_articles_batch(articles, source['id'])
+            duplicates = len(articles) - inserted
+            
+            logger.info(
+                f"✅ {source['name']}: "
+                f"{inserted} new, {duplicates} duplicates\n"
+            )
+            return inserted
+        else:
+            logger.warning(f"No articles found for {source['name']}\n")
+            return 0
+            
+    except Exception as e:
+        logger.error(f"Failed to scrape {source['name']}: {e}\n")
+        return 0
+
+
 if __name__ == "__main__":
     scrape_all_sources()
 
