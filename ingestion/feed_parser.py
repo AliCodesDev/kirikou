@@ -2,7 +2,7 @@ import requests, feedparser, logging
 from config import Config
 from datetime import datetime
 from dateutil import parser as date_parser
-from database.utils import get_all_sources, save_articles_batch
+from database.utils import get_all_sources, save_articles_batch, get_source_by_id
 
 
 # Setup logging
@@ -186,10 +186,11 @@ def scrape_source_by_id(source_id: int):
         source_id: ID of the source to scrape
     """
     logger.info(f"Starting scrape for source ID {source_id}...")
+
+    
     
     # Get source from database
-    sources = get_all_sources()
-    source = next((s for s in sources if s['id'] == source_id), None)
+    source = get_source_by_id(source_id)
     
     if not source:
         logger.error(f"Source with ID {source_id} not found")

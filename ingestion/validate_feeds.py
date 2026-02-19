@@ -218,7 +218,13 @@ def print_summary(original_count: int, valid_feeds: Dict):
             logger.info(f"    {info['url']}")
             logger.info(f"    Articles: {item_count} | Country: {info['country']} | "
                        f"Leaning: {info['political_leaning']}\n")
+            
 
+def log_source_creation(source: dict):
+    """Log the creation of a new source."""
+    source_id = source.get('id', 'unknown')
+    logger.info(f"New source created with ID: {source_id}")
+    
 
 if __name__ == "__main__":
     # Validate all feeds

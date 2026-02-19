@@ -126,6 +126,12 @@ class SourceStats(BaseModel):
     articles_last_7d: int
 
 
+class ScrapeResponse(BaseModel):
+    message: str
+    status: str
+
+
+
 
 
 

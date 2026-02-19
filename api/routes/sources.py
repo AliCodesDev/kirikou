@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from database import utils as db_utils
 from database.schemas import SourceResponse, SourceCreate, SourceUpdate
 
@@ -20,14 +20,6 @@ def get_source(source_id: int):
         raise HTTPException(status_code=404, detail="Source not found")
     return source
 
-# @router.post("/")
-# def create_source(source_data: dict):
-#     """Endpoint to create a new news source."""
-#     # Placeholder implementation
-#     new_source = db_utils.create_source(source_data)
-#     if not new_source:
-#         raise HTTPException(status_code=400, detail="Failed to create source")
-#     return {"source": new_source}
 
 # @router.put("/{source_id}")
 # def update_source(source_id: int, source_data: dict):

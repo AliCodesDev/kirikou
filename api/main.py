@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from config import Config
-from api.routes import sources, articles
+from api.routes import sources, articles, ingestion
 
 app = FastAPI(title=Config.APP_NAME, debug=Config.DEBUG)
 # Setup logging
@@ -20,6 +20,7 @@ def read_root():
 # Include API routes
 app.include_router(sources.router)
 app.include_router(articles.router)
+app.include_router(ingestion.router)
 
 
 
