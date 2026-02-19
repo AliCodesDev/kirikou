@@ -4,6 +4,72 @@ All notable changes to Kirikou will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Week 6] - 2026-02-19
+
+### Added
+
+**FastAPI REST API (Days 36-38):**
+
+- FastAPI application with modular route organization
+- RESTful API endpoints:
+  - `GET /` — Health check
+  - `GET /sources` — List all news sources
+  - `GET /sources/{id}` — Get a single source
+  - `GET /articles` — List articles with `limit`, `days`, and `source_name` query params
+  - `GET /articles/stats` — Source activity statistics
+  - `GET /articles/{id}` — Get a single article with full detail
+  - `POST /sources` — Create a new source with background feed validation
+  - `POST /scrape` — Trigger full RSS scraping (background task)
+  - `POST /scrape/{source_id}` — Trigger scraping for a single source (background task)
+- Auto-generated Swagger documentation at `/docs`
+
+**Pydantic Schemas (Day 37):**
+
+- `SourceResponse` — Source output with `from_attributes` for ORM compatibility
+- `SourceCreate` — Source input with URL and political leaning validators
+- `SourceUpdate` — Partial update schema (all fields optional)
+- `SourceBrief` — Minimal source info embedded in article responses
+- `ArticleResponse` — Article output with nested `SourceBrief`
+- `ArticleDetail` — Extended article response with description, author, scraped_at
+- `SourceStats` — Source activity statistics response
+- `ScrapeResponse` — Background task trigger response
+- Custom validators: URL format validation, political leaning restriction to known values
+- Query parameter validation via `Query(ge=1, le=500)` replacing manual if-statements
+
+**Background Tasks (Day 38):**
+
+- Full RSS scraping triggered via API (`POST /scrape`)
+- Single-source scraping via API (`POST /scrape/{source_id}`)
+- Background feed URL validation on source creation
+- Source existence validation before scheduling scrape tasks
+- `scrape_source_by_id()` function composing existing feed parser utilities
+
+**API Architecture:**
+
+- Route organization: `api/routes/articles.py`, `api/routes/sources.py`, `api/routes/ingestion.py`
+- Pydantic schemas in `database/schemas.py`
+- Nested JSON responses (articles embed source data)
+- Proper HTTP status codes (200, 201, 202, 400, 404, 422)
+- Input validation at both query parameter and request body levels
+
+### Changed
+
+- Refactored database utility functions to return nested source dicts (for article responses)
+- Updated `get_recent_articles()`, `get_articles_by_source()`, `get_article_by_id()` with nested source structure
+- Added `limit` parameter to `get_articles_by_source()` for result capping
+- Converted `get_session_no_commit()` to a proper `@contextmanager` for consistent session management
+- Added `get_source_by_id()`, `get_article_by_id()`, `create_source()` utility functions
+
+### Technical Details
+
+**API Endpoints:** 9 total (5 GET, 3 POST, 1 health check)
+
+**Pydantic Models:** 8 schemas with validation
+
+**Background Tasks:** 3 (full scrape, single source scrape, feed validation)
+
+**Dependencies Added:** fastapi, uvicorn
+
 ## [Week 4] - 2026-02-10
 
 ### Added
@@ -137,11 +203,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Progress Summary
 
-**Days Completed:** 25 of 84 (30%)
+**Days Completed:** 38 of 84 (45%)
 
-**Current Phase:** Database Layer Complete ✅
+**Current Phase:** FastAPI API Layer ✅
 
-**Next Phase:** Week 5 - Flask REST API
+**Next Phase:** Week 6 continued — Database integration with FastAPI, Celery background jobs
 
 **Technical Milestones:**
 
@@ -151,13 +217,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - ✅ SQLAlchemy ORM implementation
 - ✅ Production-ready error handling
 - ✅ Comprehensive documentation
+- ✅ FastAPI REST API with Pydantic validation
+- ✅ Background tasks for scraping and source validation
 
 **Portfolio Highlights:**
 
-- 842 articles from 10 global news sources
+- 842+ articles from 10+ global news sources
 - Production-grade database design with strategic indexes
 - Type-safe ORM with automatic relationships
-- 9 MB efficient database
+- RESTful API with 9 endpoints and auto-generated docs
+- Pydantic schemas with custom validators
+- Background task processing for RSS scraping
 - Clean, documented codebase
 - Professional Git workflow with tagged milestones
 
@@ -165,20 +235,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Coming Next
 
-**Week 5 (Days 29-35):** Flask REST API
+**Week 6 continued (Days 39-42):** FastAPI Database Integration & Async Workers
 
-- RESTful endpoints for articles and sources
-- Request validation and error handling
-- JSON serialization of database models
-- API documentation with Swagger
-- Integration with existing database layer
+- FastAPI dependency injection for database sessions
+- Celery integration for scheduled periodic scraping
+- Redis as message broker for task queue
+- Configuration and environment management
 
-**Week 6 (Days 36-42):** FastAPI Migration
+**Week 7 (Days 43-49):** Authentication & Security
 
-- Async endpoints and background tasks
-- Celery integration for scheduled scraping
-- Redis caching for performance
-- Migration from Flask to FastAPI
+- JWT authentication
+- Rate limiting and CORS
+- Input sanitization
+- Password hashing
 
 **Week 11 (Days 71-77):** LLM Integration
 

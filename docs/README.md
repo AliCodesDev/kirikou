@@ -3,6 +3,7 @@
 > **An autonomous AI-powered media intelligence platform that analyzes narrative bias across global news sources.**
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688)](https://fastapi.tiangolo.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)](https://www.postgresql.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-In%20Development-yellow)](https://github.com/AliCodesDev/kirikou)
@@ -15,16 +16,26 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 
 ## 📊 Project Status
 
-🚧 **Week 4, Day 25 of 12-Week Build** | Phase: Database Layer Complete (SQLAlchemy ORM)
+🚧 **Week 6, Day 38 of 12-Week Build** | Phase: FastAPI API Layer
 
 ### ✅ Completed Features
+
+**The Nervous System (API Layer)** — *NEW in Week 6*
+
+- ✅ FastAPI REST API with modular route organization
+- ✅ Pydantic schemas with custom validators for request/response contracts
+- ✅ Auto-generated Swagger documentation at `/docs`
+- ✅ Background tasks for RSS scraping and source creation
+- ✅ Query parameter validation with constraints
+- ✅ Nested JSON responses with proper REST structure
+- ✅ Proper HTTP status codes (200, 201, 202, 400, 404, 422)
 
 **The Memory Layer (Database)**
 
 - ✅ PostgreSQL schema with referential integrity
-- ✅ **SQLAlchemy ORM with declarative models**
-- ✅ **Type-safe database operations with Python classes**
-- ✅ **Automatic relationship navigation (source.articles, article.source)**
+- ✅ SQLAlchemy ORM with declarative models
+- ✅ Type-safe database operations with Python classes
+- ✅ Automatic relationship navigation (source.articles, article.source)
 - ✅ Automatic deduplication (UNIQUE constraint on article URLs)
 - ✅ Strategic indexes for query performance optimization
 - ✅ Transaction-based operations with proper error handling
@@ -35,10 +46,12 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 **The Senses (Data Ingestion)**
 
 - ✅ RSS feed scraper with error handling and retry logic
-- ✅ Multi-source support (10 active news sources)
+- ✅ Multi-source support (10+ active news sources)
 - ✅ Automatic date parsing and standardization
 - ✅ Batch insert operations for performance
 - ✅ Connection to database with duplicate detection
+- ✅ API-triggered scraping via background tasks
+- ✅ Single-source scraping support
 
 **Infrastructure**
 
@@ -49,16 +62,18 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 
 ### 📈 Current Data
 
-- **842 articles** ingested from 10 global news sources
+- **842+ articles** ingested from 10+ global news sources
+- **9 API endpoints** with auto-generated documentation
+- **8 Pydantic schemas** with validation and custom validators
 - **Political spectrum coverage:** Center, Center-Left, Right, Tech-Focus
 - **Geographic diversity:** UK, US, Germany, Qatar
 - **Deduplication:** Automatically skips duplicate URLs
 
 ### 🎯 Next Up
 
-- **Day 26:** NoSQL databases (MongoDB, Redis) overview
-- **Week 5:** Flask REST API for data access
-- **Week 6:** FastAPI migration with async workers (Celery)
+- **Day 39:** Database integration with FastAPI dependency injection
+- **Day 40:** Celery for scheduled background jobs
+- **Week 7:** JWT authentication, rate limiting, CORS
 - **Week 11:** LLM integration for RAG-based bias analysis
 
 ---
@@ -70,39 +85,39 @@ Kirikou is built as a modular system following clean architecture principles:
 ### System Components
 
 ```
-┌──────────────────────────────────────────────┐
-│              KIRIKOU SYSTEM                  │
-├──────────────────────────────────────────────┤
-│                                              │
-│  ┌──────────────┐      ┌──────────────┐      │
-│  │  The Senses  │ ───> │  The Memory  │      │
-│  │              │      │              │      │
-│  │ RSS Scraper  │      │  PostgreSQL  │      │
-│  │ Multi-source │      │  Dedup Logic │      │
-│  │ Error Handle │      │  Indexes     │      │
-│  └──────────────┘      └──────────────┘      │
-│         │                      │             │
-│         └──────────┬───────────┘             │
-│                    │                         │
-│         ┌──────────▼──────────┐              │
-│         │   Query Utilities   │              │
-│         │                     │              │
-│         │ • Recent Articles   │              │
-│         │ • Source Stats      │              │
-│         │ • Duplicate Stories │              │
-│         │ • Event Clustering  │              │
-│         └─────────────────────┘              │
-│                                              │
-│  Coming Soon:                                │
-│  ┌──────────────┐      ┌──────────────┐      │
-│  │ The Nervous  │      │  The Brain   │      │
-│  │   System     │      │              │      │
-│  │              │      │  LLM + RAG   │      │
-│  │ FastAPI      │      │  Bias Analyze│      │
-│  │ Async Workers│      │  Compare     │      │
-│  └──────────────┘      └──────────────┘      │
-│                                              │
-└──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│                   KIRIKOU SYSTEM                     │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│  ┌──────────────┐      ┌──────────────┐              │
+│  │  The Senses  │ ───> │  The Memory  │              │
+│  │              │      │              │              │
+│  │ RSS Scraper  │      │  PostgreSQL  │              │
+│  │ Multi-source │      │  Dedup Logic │              │
+│  │ Error Handle │      │  Indexes     │              │
+│  └──────────────┘      └──────────────┘              │
+│         │                      │                     │
+│         └──────────┬───────────┘                     │
+│                    │                                 │
+│         ┌──────────▼──────────┐                      │
+│         │  The Nervous System │                      │
+│         │                     │                      │
+│         │ FastAPI REST API    │                      │
+│         │ Pydantic Schemas    │                      │
+│         │ Background Tasks    │                      │
+│         │ Auto Swagger Docs   │                      │
+│         └─────────────────────┘                      │
+│                                                      │
+│  Coming Soon:                                        │
+│  ┌──────────────┐      ┌──────────────┐              │
+│  │  Async       │      │  The Brain   │              │
+│  │  Workers     │      │              │              │
+│  │              │      │  LLM + RAG   │              │
+│  │ Celery/Redis │      │  Bias Analyze│              │
+│  │ Scheduling   │      │  Compare     │              │
+│  └──────────────┘      └──────────────┘              │
+│                                                      │
+└──────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -111,27 +126,73 @@ Kirikou is built as a modular system following clean architecture principles:
 
 ### Core Technologies
 
-- **Python 3.10+** - Modern Python with type hints
-- **PostgreSQL 16** - Production-grade relational database
-- **SQLAlchemy** - Modern ORM for database operations
-- **psycopg2** - PostgreSQL adapter (SQLAlchemy driver)
+- **Python 3.10+** — Modern Python with type hints
+- **FastAPI** — High-performance async-capable web framework
+- **PostgreSQL 16** — Production-grade relational database
+- **SQLAlchemy** — Modern ORM for database operations
+- **Pydantic** — Data validation and serialization
+- **Uvicorn** — ASGI server for running FastAPI
 
 ### Python Libraries
 
-- **sqlalchemy** - Modern ORM for database operations
-- **feedparser** - RSS/Atom feed parsing
-- **requests** - HTTP client for fetching feeds
-- **python-dateutil** - Robust date parsing
-- **psycopg2-binary** - PostgreSQL driver for SQLAlchemy
-- **logging** - Comprehensive application logging
+- **fastapi** — REST API framework with auto-docs
+- **uvicorn** — ASGI server
+- **pydantic** — Request/response validation
+- **sqlalchemy** — Modern ORM for database operations
+- **feedparser** — RSS/Atom feed parsing
+- **requests** — HTTP client for fetching feeds
+- **python-dateutil** — Robust date parsing
+- **psycopg2-binary** — PostgreSQL driver for SQLAlchemy
+- **python-dotenv** — Environment variable management
+- **logging** — Comprehensive application logging
 
 ### Planned Technologies
 
-- **Flask → FastAPI** (Week 5-6) - RESTful API development
-- **Celery + Redis** (Week 6) - Async task queue for background scraping
-- **Docker** (Week 9) - Containerization for deployment
-- **pytest** (Week 8) - Comprehensive test suite
-- **LLM API** (Week 11) - OpenAI/Anthropic/Google for bias analysis
+- **Celery + Redis** (Week 6) — Async task queue for scheduled scraping
+- **JWT Auth** (Week 7) — Authentication and authorization
+- **Docker** (Week 9) — Containerization for deployment
+- **pytest** (Week 8) — Comprehensive test suite
+- **LLM API** (Week 11) — OpenAI/Anthropic/Google for bias analysis
+
+---
+
+## 🚀 API Endpoints
+
+### Health Check
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/` | Health check — returns system status |
+
+### Sources
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/sources` | List all news sources |
+| `GET` | `/sources/{id}` | Get a single source by ID |
+| `POST` | `/sources` | Create a new source (with background feed validation) |
+
+### Articles
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/articles` | List articles (supports `limit`, `days`, `source_name` filters) |
+| `GET` | `/articles/stats` | Source activity statistics |
+| `GET` | `/articles/{id}` | Get a single article with full detail |
+
+### Ingestion
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/scrape` | Trigger full RSS scraping (background task, returns 202) |
+| `POST` | `/scrape/{source_id}` | Scrape a single source (background task, returns 202) |
+
+### Interactive Documentation
+
+Once the server is running, visit:
+
+- **Swagger UI:** `http://127.0.0.1:8000/docs`
+- **ReDoc:** `http://127.0.0.1:8000/redoc`
 
 ---
 
@@ -165,102 +226,56 @@ CREATE TABLE articles (
     author TEXT,
     published_at TIMESTAMP NOT NULL,
     scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    url TEXT NOT NULL UNIQUE  -- Deduplication constraint
+    url TEXT NOT NULL UNIQUE
 );
 ```
 
 ### Strategic Indexes
 
-Optimized for common query patterns:
-
 ```sql
--- Foreign key optimization
 CREATE INDEX idx_articles_source_id ON articles(source_id);
-
--- Date sorting and filtering
 CREATE INDEX idx_articles_published_at ON articles(published_at DESC);
-
--- Composite index for source + date queries
 CREATE INDEX idx_articles_source_date ON articles(source_id, published_at DESC);
-
--- Duplicate detection optimization
 CREATE INDEX idx_articles_title ON articles(title);
 ```
 
 ---
 
-## 🐍 SQLAlchemy ORM Models
+## 🐍 Pydantic Schemas
 
-Kirikou uses SQLAlchemy's declarative ORM for type-safe, Pythonic database operations.
+Kirikou uses Pydantic models for strict API contracts:
 
-### Source Model
+### Source Schemas
 
-```python
-from sqlalchemy import Column, Integer, String
-from sqlalchemy.orm import relationship
+- **`SourceResponse`** — Full source data for API responses
+- **`SourceCreate`** — Validated input for creating sources (URL format, political leaning validation)
+- **`SourceUpdate`** — Partial update with optional fields
+- **`SourceBrief`** — Minimal source info embedded in article responses
 
-class Source(Base):
-    __tablename__ = 'sources'
-    
-    id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True, nullable=False)
-    url = Column(String, nullable=False)
-    country = Column(String)
-    political_leaning = Column(String)
-    
-    # Relationship: One source has many articles
-    articles = relationship('Article', back_populates='source')
-```
+### Article Schemas
 
-### Article Model
+- **`ArticleResponse`** — Article with nested `SourceBrief`
+- **`ArticleDetail`** — Extended article with description, author, scraped_at
 
-```python
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
+### Utility Schemas
 
-class Article(Base):
-    __tablename__ = 'articles'
-    
-    id = Column(Integer, primary_key=True)
-    source_id = Column(Integer, ForeignKey('sources.id'), nullable=False)
-    title = Column(String, nullable=False)
-    description = Column(Text)
-    content = Column(Text)
-    author = Column(String)
-    published_at = Column(DateTime, nullable=False)
-    scraped_at = Column(DateTime, default=datetime.now)
-    url = Column(String, unique=True, nullable=False)
-    
-    # Relationship: Many articles belong to one source
-    source = relationship('Source', back_populates='articles')
-```
+- **`SourceStats`** — Source activity statistics
+- **`ScrapeResponse`** — Background task trigger confirmation
 
-### ORM Benefits
+### Example Response
 
-- **Type Safety**: IDE autocompletion and type checking
-- **Automatic Relationships**: `article.source.name` automatically JOINs
-- **Cleaner Code**: 40% less boilerplate vs raw SQL
-- **Database Agnostic**: Easy to switch databases
-- **Session Management**: Automatic commit/rollback/close
-- **Pythonic**: Work with objects, not SQL strings
-
-### Example Usage
-
-```python
-from database import get_session, Article, Source
-from sqlalchemy.orm import joinedload
-
-# Query with relationship
-with get_session() as session:
-    articles = session.query(Article)\
-        .options(joinedload(Article.source))\
-        .filter(Article.published_at >= datetime(2026, 2, 1))\
-        .order_by(Article.published_at.desc())\
-        .limit(20)\
-        .all()
-    
-    for article in articles:
-        print(f"{article.title} from {article.source.name}")
+```json
+{
+    "id": 42,
+    "title": "Oil prices surge amid Red Sea tensions",
+    "url": "https://bbc.com/news/oil-prices",
+    "published_at": "2026-02-17T10:30:00",
+    "source": {
+        "id": 1,
+        "name": "BBC News",
+        "political_leaning": "center"
+    }
+}
 ```
 
 ---
@@ -328,128 +343,78 @@ SECRET_KEY=your-secret-key-here
 #### 7. Initialize Database
 
 ```bash
-# Create tables and indexes
 python -m database.init_db
-
-# Load news sources
 psql kirikou_db < database/add_sources.sql
 ```
+
+#### 8. Start the API Server
+
+```bash
+uvicorn api.main:app --reload
+```
+
+Visit `http://127.0.0.1:8000/docs` to explore the API.
 
 ---
 
 ## 💻 Usage
 
-### Running the RSS Scraper
+### Running the API Server
 
-Fetch articles from all configured news sources:
+```bash
+uvicorn api.main:app --reload
+```
+
+### Triggering RSS Scraping via API
+
+```bash
+# Scrape all sources
+curl -X POST http://127.0.0.1:8000/ingestion/scrape
+
+# Scrape a single source
+curl -X POST http://127.0.0.1:8000/ingestion/scrape/1
+```
+
+### Querying Articles
+
+```bash
+# Get latest 20 articles
+curl http://127.0.0.1:8000/articles
+
+# Get 5 articles from the last 3 days
+curl "http://127.0.0.1:8000/articles?limit=5&days=3"
+
+# Get BBC News articles
+curl "http://127.0.0.1:8000/articles?source_name=BBC%20News"
+
+# Get source statistics
+curl http://127.0.0.1:8000/articles/stats
+```
+
+### Adding a New Source
+
+```bash
+curl -X POST http://127.0.0.1:8000/ingestion/sources \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Reuters", "url": "https://www.reutersagency.com/feed/", "country": "UK", "political_leaning": "center"}'
+```
+
+### Running the RSS Scraper Directly
 
 ```bash
 python -m ingestion.feed_parser
 ```
 
-**Output:**
-
-```
-======================================================================
-Starting RSS scraper...
-======================================================================
-Found 13 sources to scrape
-
-[1/13] Scraping Al Jazeera...
-✅ Al Jazeera: 25 new, 0 duplicates
-
-[2/13] Scraping BBC News...
-✅ BBC News: 38 new, 0 duplicates
-
-...
-
-======================================================================
-Scraping complete!
-======================================================================
-Sources processed: 13
-Articles fetched:  406
-Articles inserted: 406
-Duplicates skip:   0
-======================================================================
-```
-
-### Querying Data with Utilities
-
-The project includes powerful query utilities powered by SQLAlchemy ORM that return clean dictionary results:
-
-```python
-from database.utils import (
-    get_recent_articles,
-    get_source_stats,
-    get_duplicate_stories,
-    get_inactive_sources
-)
-
-# Get latest articles with source information
-articles = get_recent_articles(limit=20)
-for article in articles:
-    print(f"{article['title']} - {article['source_name']}")
-
-# Get source activity statistics
-stats = get_source_stats()
-for stat in stats:
-    print(f"{stat['source_name']}: {stat['total_articles']} articles")
-
-# Find duplicate stories (event clustering)
-duplicates = get_duplicate_stories()
-for dup in duplicates:
-    print(f"'{dup['title']}' covered by {dup['source1']} and {dup['source2']}")
-
-# Monitor feed health
-inactive = get_inactive_sources(hours=24)
-for source in inactive:
-    print(f"⚠️ {source['source_name']} - Last article: {source['last_article_date']}")
-```
-
-### Direct ORM Queries
-
-Work directly with Python objects using SQLAlchemy:
-
-```python
-from database import get_session, Article, Source
-from sqlalchemy.orm import joinedload
-
-# Query with automatic relationship loading
-with get_session() as session:
-    articles = session.query(Article)\
-        .options(joinedload(Article.source))\
-        .filter(Article.published_at >= datetime(2026, 2, 1))\
-        .order_by(Article.published_at.desc())\
-        .limit(10)\
-        .all()
-    
-    for article in articles:
-        # Access related source without additional query
-        print(f"{article.title} from {article.source.name}")
-```
-
 ### Direct Database Queries
 
 ```bash
-# Count total articles
 psql kirikou_db -c "SELECT COUNT(*) FROM articles;"
-
-# Recent articles with source info
 psql kirikou_db -c "
     SELECT a.title, s.name as source, a.published_at 
     FROM articles a 
     JOIN sources s ON a.source_id = s.id 
     ORDER BY a.published_at DESC 
     LIMIT 10;
-"
-
-# Articles by source
-psql kirikou_db -c "
-    SELECT s.name, COUNT(a.id) as article_count
-    FROM sources s
-    LEFT JOIN articles a ON s.id = a.source_id
-    GROUP BY s.name
-    ORDER BY article_count DESC;
 "
 ```
 
@@ -459,32 +424,46 @@ psql kirikou_db -c "
 
 ```
 kirikou/
-├── config.py                 # Configuration management
-├── database/                 # Database layer
+├── api/                          # API layer (Week 6)
 │   ├── __init__.py
-│   ├── init_db.py           # Database initialization
-│   ├── schema.sql           # PostgreSQL schema with indexes
-│   ├── add_sources.sql      # Validated news sources
-│   ├── queries.sql          # Production SQL queries
-│   ├── seed_data.sql        # Test data
-│   └── utils.py             # Reusable query functions
-├── ingestion/               # Data ingestion module
+│   ├── main.py                  # FastAPI app creation & config
+│   └── routes/
+│       ├── __init__.py
+│       ├── articles.py          # Article endpoints
+│       ├── sources.py           # Source endpoints
+│       └── ingestion.py         # Scraping & source creation endpoints
+├── config.py                    # Configuration management
+├── database/                    # Database layer (Week 4)
 │   ├── __init__.py
-│   ├── feed_parser.py       # RSS scraper
-│   └── validate_feeds.py    # Feed validation utility
-├── logs/                    # Application logs
-├── venv/                    # Virtual environment
-├── requirements.txt         # Python dependencies
-├── .env                     # Environment variables (gitignored)
-├── .env.example            # Environment template
-└── README.md               # This file
+│   ├── db.py                   # Engine, session management
+│   ├── init_db.py              # Database initialization
+│   ├── models.py               # SQLAlchemy ORM models
+│   ├── schemas.py              # Pydantic validation schemas
+│   ├── schema.sql              # PostgreSQL schema with indexes
+│   ├── add_sources.sql         # Validated news sources
+│   ├── queries.sql             # Production SQL queries
+│   ├── seed_data.sql           # Test data
+│   └── utils.py                # Reusable query functions
+├── ingestion/                   # Data ingestion module (Week 3)
+│   ├── __init__.py
+│   ├── feed_parser.py          # RSS scraper
+│   └── validate_feeds.py       # Feed validation utility
+├── docs/                        # Documentation
+│   └── DATABASE.md             # Database documentation
+├── logs/                        # Application logs
+├── requirements.txt             # Python dependencies
+├── .env                         # Environment variables (gitignored)
+├── .env.example                # Environment template
+├── CHANGELOG.md                # Detailed change history
+├── LICENSE                      # MIT License
+└── README.md                   # This file
 ```
 
 ---
 
 ## 🌐 News Sources
 
-Kirikou currently ingests from **10 validated sources** across the political spectrum:
+Kirikou currently ingests from **10+ validated sources** across the political spectrum:
 
 ### Political Balance
 
@@ -503,16 +482,31 @@ Kirikou currently ingests from **10 validated sources** across the political spe
 
 ## 🎯 Key Features
 
+### RESTful API with Auto-Documentation
+
+FastAPI provides interactive Swagger documentation at `/docs`, showing all endpoints, request/response schemas, and allowing direct testing from the browser.
+
+### Pydantic Validation
+
+All API inputs are validated through Pydantic schemas with custom validators:
+
+- URL format validation (must start with `http://` or `https://`)
+- Political leaning restricted to known values
+- Query parameter constraints (e.g., `limit` between 1-500, `days` between 1-30)
+
+### Background Task Processing
+
+API-triggered scraping runs in the background, returning 202 Accepted immediately. The server stays responsive while feeds are being fetched and articles are being stored.
+
 ### Automatic Deduplication
 
-Articles with duplicate URLs are automatically skipped using PostgreSQL's `UNIQUE` constraint and `ON CONFLICT DO NOTHING` strategy. This ensures the same story isn't stored multiple times even if multiple sources link to it.
+Articles with duplicate URLs are automatically skipped using PostgreSQL's `UNIQUE` constraint and `ON CONFLICT DO NOTHING` strategy.
 
 ### Event Clustering
 
-The duplicate detection query identifies when multiple sources cover the same story (same title), enabling future bias analysis:
+Duplicate detection identifies when multiple sources cover the same story, enabling future bias analysis:
 
 ```sql
--- Find articles with identical titles from different sources
 SELECT a1.title, s1.name AS source1, s2.name AS source2
 FROM articles a1
 JOIN articles a2 ON a1.title = a2.title AND a1.id < a2.id
@@ -520,29 +514,14 @@ JOIN sources s1 ON a1.source_id = s1.id
 JOIN sources s2 ON a2.source_id = s2.id;
 ```
 
-Example output:
-
-```
-"Breaking: Election Results" - BBC News vs Fox News
-"Breaking: Election Results" - BBC News vs CNN
-"Breaking: Election Results" - CNN vs Fox News
-```
-
 **This is the foundation for Week 11's LLM-powered bias analysis!**
 
 ### Performance Optimization
 
-- **Batch inserts** using `executemany()` for 50x speed improvement over individual inserts
+- **Batch inserts** for 50x speed improvement over individual inserts
 - **Strategic indexes** on foreign keys, dates, and frequently queried columns
-- **Transaction handling** ensures all-or-nothing batch operations
-- **Connection pooling** ready for high-traffic API deployment (Week 5)
-
-### Robust Error Handling
-
-- Graceful handling of failed feeds (continues scraping other sources)
-- Automatic date parsing with fallback to current time
-- Connection cleanup in all scenarios (try/except/finally)
-- Comprehensive logging at every step
+- **Eager loading** with `joinedload()` to avoid N+1 query problems
+- **Connection pooling** for high-traffic API deployment
 
 ---
 
@@ -558,18 +537,20 @@ Example output:
 - [x] Reusable database utilities
 - [x] Transaction-based operations with session management
 
-### Phase 2: The Interface (🚧 Week 5)
+### Phase 2: The Interface (✅ Complete - Week 6)
 
-- [ ] Flask REST API for data access
-- [ ] CRUD endpoints for articles and sources
-- [ ] Request validation and error handling
-- [ ] API documentation (Swagger)
+- [x] FastAPI REST API with modular routes
+- [x] Pydantic schemas with custom validators
+- [x] CRUD endpoints for articles and sources
+- [x] Query parameter validation and filtering
+- [x] Auto-generated API documentation (Swagger)
+- [x] Background tasks for scraping operations
 
-### Phase 3: Modern Stack (📅 Week 6)
+### Phase 3: Modern Stack (🚧 Week 6 continued)
 
-- [ ] Migrate to FastAPI with async support
-- [ ] Celery workers for background scraping
+- [ ] Celery workers for scheduled periodic scraping
 - [ ] Redis for caching and task queue
+- [ ] FastAPI dependency injection for database sessions
 - [ ] Scheduled periodic scraping (every hour)
 
 ### Phase 4: Security (📅 Week 7)
@@ -631,48 +612,6 @@ Only **new** articles since the last run are inserted. Existing URLs are automat
 
 ---
 
-## 📊 Analytics Queries
-
-The project includes pre-built SQL queries for common analytics:
-
-### Recent Articles Dashboard
-
-```sql
-SELECT a.title, a.url, a.published_at, 
-       s.name AS source_name, s.country, s.political_leaning
-FROM articles a
-INNER JOIN sources s ON a.source_id = s.id
-ORDER BY a.published_at DESC
-LIMIT 20;
-```
-
-### Source Activity Report
-
-```sql
-SELECT s.name AS source_name,
-       COUNT(a.id) AS total_articles,
-       COUNT(CASE WHEN a.published_at > NOW() - INTERVAL '7 days' THEN 1 END) AS articles_last_7d
-FROM sources s
-LEFT JOIN articles a ON s.id = a.source_id
-GROUP BY s.id, s.name
-ORDER BY total_articles DESC;
-```
-
-### Inactive Sources Detection
-
-```sql
-SELECT s.name AS source_name, s.url,
-       MAX(a.published_at) AS last_article_date
-FROM sources s
-LEFT JOIN articles a ON s.id = a.source_id
-GROUP BY s.id, s.name, s.url
-HAVING MAX(a.published_at) IS NULL 
-    OR MAX(a.published_at) < NOW() - INTERVAL '24 hours'
-ORDER BY last_article_date ASC NULLS FIRST;
-```
-
----
-
 ## 🤝 Contributing
 
 This is a learning project following a structured 12-week curriculum. Contributions, suggestions, and feedback are welcome!
@@ -698,28 +637,17 @@ Types:
 - chore: maintenance
 ```
 
-Example:
-
-```
-feat(day24): connect RSS scraper to PostgreSQL database
-
-- Enhanced extract_articles() to parse dates with dateutil
-- Created save_articles_batch() for efficient batch inserts
-- Implemented scrape_all_sources() reading from database
-- Added get_all_sources() to query sources dynamically
-```
-
 ---
 
 ## 📖 Learning Journey
 
 This project is part of a **12-week Python Backend Development Journey** building a production-grade application from scratch. Each week focuses on specific backend engineering concepts:
 
-- **Week 1-2:** Python fundamentals and OOP
-- **Week 3:** Networking, HTTP, and API consumption
-- **Week 4:** SQL, PostgreSQL, and database design ✅ (Current)
-- **Week 5:** Flask web framework and REST APIs
-- **Week 6:** FastAPI and async programming
+- **Week 1-2:** Python fundamentals and OOP ✅
+- **Week 3:** Networking, HTTP, and API consumption ✅
+- **Week 4:** SQL, PostgreSQL, and database design ✅
+- **Week 5:** ~~Flask~~ (Skipped — jumped directly to FastAPI)
+- **Week 6:** FastAPI, Pydantic, async, and background tasks 🚧 (Current)
 - **Week 7:** Authentication, authorization, and security
 - **Week 8:** Testing and quality assurance
 - **Week 9:** Docker and CI/CD
@@ -727,7 +655,7 @@ This project is part of a **12-week Python Backend Development Journey** buildin
 - **Week 11:** Cloud deployment and LLM integration
 - **Week 12:** Final polish and production deployment
 
-**Progress:** Currently on Day 25 of 84 (30% complete)
+**Progress:** Day 38 of 84 (45% complete)
 
 ---
 
@@ -751,9 +679,10 @@ Backend Development Journey 2026
 
 ## 🙏 Acknowledgments
 
-- **Anthropic Claude** - AI development mentor
-- **PostgreSQL Community** - Excellent database documentation
-- **Python Community** - Rich ecosystem of libraries
+- **Anthropic Claude** — AI development mentor
+- **FastAPI** — Excellent framework and documentation
+- **PostgreSQL Community** — Excellent database documentation
+- **Python Community** — Rich ecosystem of libraries
 - News organizations providing RSS feeds for educational purposes
 
 ---
