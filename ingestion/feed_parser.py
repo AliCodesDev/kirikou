@@ -2,7 +2,7 @@ import requests, feedparser, logging
 from config import Config
 from datetime import datetime
 from dateutil import parser as date_parser
-from database.utils import get_all_sources, save_articles_batch, get_source_by_id
+from database.utils import get_all_sources_standalone, save_articles_batch, get_source_by_id_standalone
 
 
 # Setup logging
@@ -122,7 +122,7 @@ def scrape_all_sources():
     logger.info("=" * 70)
     
     # Get sources from database
-    sources = get_all_sources()
+    sources = get_all_sources_standalone()
     logger.info(f"Found {len(sources)} sources to scrape\n")
     
     total_inserted = 0
@@ -190,7 +190,7 @@ def scrape_source_by_id(source_id: int):
     
     
     # Get source from database
-    source = get_source_by_id(source_id)
+    source = get_source_by_id_standalone(source_id)
     
     if not source:
         logger.error(f"Source with ID {source_id} not found")

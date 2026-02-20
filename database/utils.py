@@ -2,7 +2,7 @@
 from typing import List, Dict, Optional, cast
 from datetime import datetime, timedelta
 from sqlalchemy import CursorResult, func, text, case
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, Session
 import logging
 
 from database.models import Source, Article
@@ -12,98 +12,125 @@ from config import Config
 logger = logging.getLogger(__name__)
 
 
-def get_all_sources() -> List[Dict]:
-    """
-    Get all sources from database using ORM.
+def get_all_sources_standalone() -> List[Dict]:
+    """Standalone version for CLI scripts (creates own session)."""
+    with get_session_no_commit() as session:
+        return get_all_sources(session)
     
+def get_all_sources(db: Session) -> List[Dict]:
+    """
+    New version — uses injected session.
+
+    Get all sources from database using provided session.
+    
+    Args:
+        db: Database session
     Returns:
         List of source dictionaries
     """
+    sources = db.query(Source).order_by(Source.name).all()
+
+    # Convert to dicts
+    return [
+        {
+            'id': s.id,
+            'name': s.name,
+            'url': s.url,
+            'country': s.country,
+            'political_leaning': s.political_leaning
+        }
+        for s in sources
+    ]
+
+
+def get_recent_articles_standalone(limit: int = 20) -> List[Dict]:
+    """Standalone version for CLI scripts (creates own session)."""
     with get_session_no_commit() as session:
-        sources = session.query(Source).order_by(Source.name).all()
+        return get_recent_articles(session, limit)
 
-        # Convert to dicts
-        return [
-            {
-                'id': s.id,
-                'name': s.name,
-                'url': s.url,
-                'country': s.country,
-                'political_leaning': s.political_leaning
-            }
-            for s in sources
-        ]
-
-
-def get_recent_articles(limit: int = 20) -> List[Dict]:
+def get_recent_articles(db: Session, limit: int = 20) -> List[Dict]:
     """
-    Get recent articles with source information using ORM.
+    New version — uses injected session.
+
+    Get recent articles with source information using provided session.
     
     Args:
+        db: Database session
         limit: Maximum number of articles
         
     Returns:
         List of article dictionaries
     """
-    with get_session_no_commit() as session:
-        # Eager load source to avoid N+1 queries
-        articles = session.query(Article)\
-            .options(joinedload(Article.source))\
-            .order_by(Article.published_at.desc())\
-            .limit(limit)\
-            .all()
-
-        return [
-            {
-                'id': a.id,
-                'title': a.title,
-                'url': a.url,
-                'published_at': a.published_at,
-                'source': {
-                    'id': a.source.id,
-                    'name': a.source.name,
-                    'political_leaning': a.source.political_leaning
-                }
+    # Eager load source to avoid N+1 queries
+    articles = db.query(Article)\
+        .options(joinedload(Article.source))\
+        .order_by(Article.published_at.desc())\
+        .limit(limit)\
+        .all()
+    
+    return [
+        {
+            'id': a.id,
+            'title': a.title,
+            'url': a.url,
+            'published_at': a.published_at,
+            'source': {
+                'id': a.source.id,
+                'name': a.source.name,
+                'political_leaning': a.source.political_leaning
             }
-            for a in articles
-        ]
+        }
+        for a in articles
+    ]
 
 
-def get_source_stats() -> List[Dict]:
+
+
+def get_source_stats_standalone() -> List[Dict]:
+    """Standalone version for CLI scripts (creates own session)."""
+    
+    with get_session_no_commit() as session:
+        return get_source_stats(session)
+    
+
+def get_source_stats(db: Session) -> List[Dict]:
     """
-    Get article count statistics for all sources.
+    New version — uses injected session.
+
+    Get article counts per source using provided session.
     
+    Args:
+        db: Database session
+        
     Returns:
-        List of source statistics
-    """ 
+        List of source stats dictionaries
+    """
+    seven_days_ago = datetime.now() - timedelta(days=7)
+
+    # Query with aggregation
+    stats = db.query(
+        Source.name.label('source_name'),
+        func.count(Article.id).label('total_articles'),
+        func.sum(
+            case(
+                (Article.published_at > seven_days_ago, 1),
+                else_=0
+            )
+        ).label('articles_last_7d')
+    )\
+        .outerjoin(Article)\
+        .group_by(Source.id, Source.name)\
+        .order_by(func.count(Article.id).desc())\
+        .all()
     
-    with get_session_no_commit() as session:
-        seven_days_ago = datetime.now() - timedelta(days=7)
-
-        # Query with aggregation
-        stats = session.query(
-            Source.name.label('source_name'),
-            func.count(Article.id).label('total_articles'),
-            func.sum(
-                case(
-                    (Article.published_at > seven_days_ago, 1),
-                    else_=0
-                )
-            ).label('articles_last_7d')
-        )\
-            .outerjoin(Article)\
-            .group_by(Source.id, Source.name)\
-            .order_by(func.count(Article.id).desc())\
-            .all()
-
-        return [
-            {
-                'source_name': stat.source_name,
-                'total_articles': stat.total_articles,
-                'articles_last_7d': int(stat.articles_last_7d or 0)
-            }
-            for stat in stats
-        ]
+    return [
+        {
+            'source_name': stat.source_name,
+            'total_articles': stat.total_articles,
+            'articles_last_7d': int(stat.articles_last_7d or 0)
+        }
+        for stat in stats
+    ]
 
 
 def get_inactive_sources(hours: int = 24) -> List[Dict]:
@@ -187,44 +214,52 @@ def get_duplicate_stories() -> List[Dict]:
         ]
 
 
-def get_articles_by_source(source_name: str, days: int = 7, limit: int = 500) -> List[Dict]:
+def get_articles_by_source_standalone(source_name: str, days: int = 7, limit: int = 500) -> List[Dict]:
+    """Standalone version for CLI scripts (creates own session)."""
+    with get_session_no_commit() as session:
+        return get_articles_by_source(session, source_name, days, limit)
+    
+
+def get_articles_by_source(db: Session, source_name: str, days: int = 7, limit: int = 500) -> List[Dict]:
     """
-    Get articles from a specific source within the last N days.
+    New version — uses injected session.
+
+    Get articles from a specific source within the last N days using provided session.
     
     Args:
+        db: Database session
         source_name: Name of the source
         days: Number of days to look back
-        
     Returns:
         List of articles
     """
-    with get_session_no_commit() as session:
-        cutoff_date = datetime.now() - timedelta(days=days)
+    cutoff_date = datetime.now() - timedelta(days=days)
 
-        articles = session.query(Article)\
-            .join(Source)\
-            .filter(
-                Source.name == source_name,
-                Article.published_at >= cutoff_date
-            )\
-            .order_by(Article.published_at.desc())\
-            .limit(limit)\
-            .all()
-
-        return [
-            {
-                'id': a.id,
-                'title': a.title,
-                'url': a.url,
-                'published_at': a.published_at,
-                'source': {
-                    'id': a.source.id,
-                    'name': a.source.name,
-                    'political_leaning': a.source.political_leaning
-                }
+    articles = db.query(Article)\
+        .join(Source)\
+        .filter(
+            Source.name == source_name,
+            Article.published_at >= cutoff_date
+        )\
+        .order_by(Article.published_at.desc())\
+        .limit(limit)\
+        .all()
+    
+    return [
+        {
+            'id': a.id,
+            'title': a.title,
+            'url': a.url,
+            'published_at': a.published_at,
+            'source': {
+                'id': a.source.id,
+                'name': a.source.name,
+                'political_leaning': a.source.political_leaning
             }
-            for a in articles
-        ]
+        }
+        for a in articles
+    ]
+
 
 
 def save_articles_batch(articles: List[Dict], source_id: int) -> int:
@@ -276,58 +311,73 @@ def save_articles_batch(articles: List[Dict], source_id: int) -> int:
     
 
 
-def create_source(source: dict) -> Dict:
+def create_source_standalone(source: dict) -> Dict:
+    """Original version: creates own session (for CLI/scripts)."""
+
+    with get_session() as session:
+        return create_source(session, source)
+    
+
+def create_source(db: Session, source: dict) -> Dict:
     """
-    Create a new source in the database.
+    New version — uses injected session.
+
+    Create a new source using provided session.
     
     Args:
+        db: Database session
         source: Source data dictionary
         
     Returns:
         Created source dictionary
     """
-    with get_session() as session:
-        new_source = Source(
-            name=source['name'],
-            url=source['url'],
-            country=source.get('country'),
-            political_leaning=source.get('political_leaning')
-        )
-        session.add(new_source)
-        session.commit()
-        session.refresh(new_source)
+    new_source = Source(
+        name=source['name'],
+        url=source['url'],
+        country=source.get('country'),
+        political_leaning=source.get('political_leaning')
+    )
+    db.add(new_source)
+    db.flush()          # ← flush instead of commit to get ID without committing
+    db.refresh(new_source)
+    
+    return {
+        'id': new_source.id,
+        'name': new_source.name,
+        'url': new_source.url,
+        'country': new_source.country,
+        'political_leaning': new_source.political_leaning
+    }
+
+
+
+def get_source_by_id_standalone(source_id: int) -> Optional[Dict]:
+    """Standalone version for CLI scripts (creates own session)."""
+    with get_session_no_commit() as session:
+        return get_source_by_id(session, source_id)
         
-        return {
-            'id': new_source.id,
-            'name': new_source.name,
-            'url': new_source.url,
-            'country': new_source.country,
-            'political_leaning': new_source.political_leaning
-        }
-
-
-def get_source_by_id(source_id: int) -> Optional[Dict]:
+def get_source_by_id(db: Session, source_id: int) -> Optional[Dict]:
     """
-    Get a source by its ID.
+    Get a source by its ID using provided session.
     
     Args:
+        db: Database session
         source_id: ID of the source
         
     Returns:
         Source dictionary or None if not found
     """
-    with get_session_no_commit() as session:
-        source = session.query(Source).filter(Source.id == source_id).first()
-        if source:
-            return {
-                'id': source.id,
-                'name': source.name,
-                'url': source.url,
-                'country': source.country,
-                'political_leaning': source.political_leaning
-            }
-        else:
-            return None
+    source = db.query(Source).filter(Source.id == source_id).first()
+    if source:
+        return {
+            'id': source.id,
+            'name': source.name,
+            'url': source.url,
+            'country': source.country,
+            'political_leaning': source.political_leaning
+        }
+    else:
+        return None
 
 
 def update_source(source_id: int, source_data: dict) -> Optional[Dict]:
@@ -412,33 +462,41 @@ def delete_source(source_id: int) -> bool:
             return False
         
 
-def get_article_by_id(article_id: int) -> Optional[Dict]:
+def get_article_by_id_standalone(article_id: int) -> Optional[Dict]:
+    """Original version: creates own session (for CLI/scripts)."""
+
+    with get_session_no_commit() as session:
+        return get_article_by_id(session, article_id)
+        
+
+def get_article_by_id(db: Session, article_id: int) -> Optional[Dict]:
     """
-    Get an article by its ID.
+    New version — uses injected session.
+
+    Get an article by its ID using provided session.
     
     Args:
+        db: Database session
         article_id: ID of the article
         
     Returns:
         Article dictionary or None if not found
     """
-    with get_session_no_commit() as session:
-        article = session.query(Article).options(joinedload(Article.source)).filter(Article.id == article_id).first()
-        if article:
-            return {
-                'id': article.id,
-                'title': article.title,
-                'url': article.url,
-                'published_at': article.published_at,
-                'description': article.description,
-                'author': article.author,
-                'scraped_at': article.scraped_at,
-                'source': {
-                    'id': article.source.id,
-                    'name': article.source.name,
-                    'political_leaning': article.source.political_leaning
-                }
+    article = db.query(Article).options(joinedload(Article.source)).filter(Article.id == article_id).first()
+    if article:
+        return {
+            'id': article.id,
+            'title': article.title,
+            'url': article.url,
+            'published_at': article.published_at,
+            'description': article.description,
+            'author': article.author,
+            'scraped_at': article.scraped_at,
+            'source': {
+                'id': article.source.id,
+                'name': article.source.name,
+                'political_leaning': article.source.political_leaning
             }
-        else:
-            return None
-        
+        }
+    else:
+        return None

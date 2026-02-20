@@ -81,3 +81,22 @@ def get_session_no_commit() -> Generator[Session]:
     finally:
         session.close()
         logger.debug("Session closed")
+
+
+def get_db() -> Generator[Session]:
+    """
+    Dependency for FastAPI routes to get a database session.
+
+    Usage in FastAPI:
+        @app.get("/items/")
+        def read_items(db: Session = Depends(get_db)):
+            items = db.query(Item).all()
+            return items
+    Yields:
+        Session: Database session
+    """
+    with get_session_no_commit() as session:
+        yield session
+
+
+

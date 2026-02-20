@@ -7,7 +7,7 @@ Provides:
 - Utility functions: get_all_sources, save_articles_batch, etc.
 """
 from database.models import Base, Source, Article
-from database.db import engine, get_session, get_session_no_commit
+from database.db import engine, get_session, get_session_no_commit, get_db
 from database.utils import (
     get_all_sources,
     get_recent_articles,
@@ -28,6 +28,7 @@ __all__ = [
     'engine',
     'get_session',
     'get_session_no_commit',
+    'get_db',
     
     # Utilities
     'get_all_sources',
