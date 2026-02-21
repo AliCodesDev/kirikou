@@ -129,6 +129,9 @@ class SourceStats(BaseModel):
 class ScrapeResponse(BaseModel):
     message: str
     status: str
+    task_id: str | None = None
+
+
 
 
 
