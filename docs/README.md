@@ -5,6 +5,8 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688)](https://fastapi.tiangolo.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)](https://www.postgresql.org/)
+[![Celery](https://img.shields.io/badge/Celery-5.x-37814A)](https://docs.celeryq.dev/)
+[![Redis](https://img.shields.io/badge/Redis-7.x-DC382D)](https://redis.io/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-In%20Development-yellow)](https://github.com/AliCodesDev/kirikou)
 
@@ -16,16 +18,25 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 
 ## 📊 Project Status
 
-🚧 **Week 6, Day 38 of 12-Week Build** | Phase: FastAPI API Layer
+🚧 **Week 6, Day 40 of 12-Week Build** | Phase: Async Architecture
 
 ### ✅ Completed Features
 
-**The Nervous System (API Layer)** — *NEW in Week 6*
+**Async Workers (Celery + Redis)** — *NEW in Week 6*
+
+- ✅ Celery workers with Redis message broker for distributed task processing
+- ✅ Celery Beat scheduler — autonomous hourly RSS scraping
+- ✅ Task ID tracking in API responses for async job monitoring
+- ✅ Process isolation — scraping runs in separate worker, API stays fast
+- ✅ FastAPI dependency injection for database session management
+- ✅ One session per request with route-controlled transactions
+
+**The Nervous System (API Layer)**
 
 - ✅ FastAPI REST API with modular route organization
 - ✅ Pydantic schemas with custom validators for request/response contracts
 - ✅ Auto-generated Swagger documentation at `/docs`
-- ✅ Background tasks for RSS scraping and source creation
+- ✅ Background tasks for lightweight operations (feed validation, logging)
 - ✅ Query parameter validation with constraints
 - ✅ Nested JSON responses with proper REST structure
 - ✅ Proper HTTP status codes (200, 201, 202, 400, 404, 422)
@@ -40,8 +51,8 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 - ✅ Strategic indexes for query performance optimization
 - ✅ Transaction-based operations with proper error handling
 - ✅ Advanced SQL queries (JOINs, aggregations, analytics)
-- ✅ Reusable database utilities with ORM and dictionary-based results
-- ✅ Session management with context managers
+- ✅ Reusable database utilities with injected session support
+- ✅ Session management with context managers and FastAPI dependency injection
 
 **The Senses (Data Ingestion)**
 
@@ -50,7 +61,8 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 - ✅ Automatic date parsing and standardization
 - ✅ Batch insert operations for performance
 - ✅ Connection to database with duplicate detection
-- ✅ API-triggered scraping via background tasks
+- ✅ Celery-based async scraping via API triggers
+- ✅ Autonomous hourly scraping via Celery Beat
 - ✅ Single-source scraping support
 
 **Infrastructure**
@@ -59,20 +71,22 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 - ✅ Comprehensive logging system
 - ✅ Modular architecture (separation of concerns)
 - ✅ Production-ready error handling
+- ✅ Redis for message brokering and result storage
 
 ### 📈 Current Data
 
 - **842+ articles** ingested from 10+ global news sources
 - **9 API endpoints** with auto-generated documentation
 - **8 Pydantic schemas** with validation and custom validators
+- **2 Celery tasks** with hourly Beat schedule
 - **Political spectrum coverage:** Center, Center-Left, Right, Tech-Focus
 - **Geographic diversity:** UK, US, Germany, Qatar
 - **Deduplication:** Automatically skips duplicate URLs
 
 ### 🎯 Next Up
 
-- **Day 39:** Database integration with FastAPI dependency injection
-- **Day 40:** Celery for scheduled background jobs
+- **Day 41:** Configuration and environment management
+- **Day 42:** Week 6 Integration Day — refactor, document, tag milestone
 - **Week 7:** JWT authentication, rate limiting, CORS
 - **Week 11:** LLM integration for RAG-based bias analysis
 
@@ -104,20 +118,52 @@ Kirikou is built as a modular system following clean architecture principles:
 │         │                     │                      │
 │         │ FastAPI REST API    │                      │
 │         │ Pydantic Schemas    │                      │
-│         │ Background Tasks    │                      │
+│         │ Dependency Inject.  │                      │
 │         │ Auto Swagger Docs   │                      │
+│         └─────────────────────┘                      │
+│                    │                                 │
+│         ┌──────────▼──────────┐                      │
+│         │   Async Workers     │                      │
+│         │                     │                      │
+│         │ Celery + Redis      │                      │
+│         │ Hourly Beat Sched.  │                      │
+│         │ Task ID Tracking    │                      │
 │         └─────────────────────┘                      │
 │                                                      │
 │  Coming Soon:                                        │
 │  ┌──────────────┐      ┌──────────────┐              │
-│  │  Async       │      │  The Brain   │              │
-│  │  Workers     │      │              │              │
-│  │              │      │  LLM + RAG   │              │
-│  │ Celery/Redis │      │  Bias Analyze│              │
-│  │ Scheduling   │      │  Compare     │              │
+│  │  Security    │      │  The Brain   │              │
+│  │              │      │              │              │
+│  │ JWT Auth     │      │  LLM + RAG   │              │
+│  │ Rate Limit   │      │  Bias Analyze│              │
+│  │ CORS         │      │  Compare     │              │
 │  └──────────────┘      └──────────────┘              │
 │                                                      │
 └──────────────────────────────────────────────────────┘
+```
+
+### Process Architecture
+
+```
+┌──────────────────┐
+│    FastAPI API    │       ┌─────────────┐       ┌──────────────┐
+│    (uvicorn)     │──────►│    Redis     │──────►│ Celery Worker│
+│                  │       │   (Broker)   │       │              │
+│  POST /scrape    │       └─────────────┘       │ scrape_all   │
+│  GET /articles   │              ▲               │ scrape_one   │
+│  GET /sources    │              │               └──────────────┘
+└──────────────────┘       ┌──────┴──────┐
+                           │ Celery Beat │
+        PostgreSQL ◄───    │             │
+        (Database)         │ Every hour: │
+                           │ scrape all  │
+                           └─────────────┘
+
+Running Processes:
+1. uvicorn api.main:app              ← API server
+2. redis-server                       ← Message broker
+3. celery -A worker.celery_app worker ← Task executor
+4. celery -A worker.celery_app beat   ← Scheduler
 ```
 
 ---
@@ -131,6 +177,8 @@ Kirikou is built as a modular system following clean architecture principles:
 - **PostgreSQL 16** — Production-grade relational database
 - **SQLAlchemy** — Modern ORM for database operations
 - **Pydantic** — Data validation and serialization
+- **Celery** — Distributed task queue for background jobs
+- **Redis** — Message broker and result backend
 - **Uvicorn** — ASGI server for running FastAPI
 
 ### Python Libraries
@@ -139,6 +187,8 @@ Kirikou is built as a modular system following clean architecture principles:
 - **uvicorn** — ASGI server
 - **pydantic** — Request/response validation
 - **sqlalchemy** — Modern ORM for database operations
+- **celery** — Distributed task queue
+- **redis** — Redis client for Python
 - **feedparser** — RSS/Atom feed parsing
 - **requests** — HTTP client for fetching feeds
 - **python-dateutil** — Robust date parsing
@@ -148,7 +198,6 @@ Kirikou is built as a modular system following clean architecture principles:
 
 ### Planned Technologies
 
-- **Celery + Redis** (Week 6) — Async task queue for scheduled scraping
 - **JWT Auth** (Week 7) — Authentication and authorization
 - **Docker** (Week 9) — Containerization for deployment
 - **pytest** (Week 8) — Comprehensive test suite
@@ -170,7 +219,6 @@ Kirikou is built as a modular system following clean architecture principles:
 |--------|----------|-------------|
 | `GET` | `/sources` | List all news sources |
 | `GET` | `/sources/{id}` | Get a single source by ID |
-| `POST` | `/sources` | Create a new source (with background feed validation) |
 
 ### Articles
 
@@ -184,8 +232,9 @@ Kirikou is built as a modular system following clean architecture principles:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/scrape` | Trigger full RSS scraping (background task, returns 202) |
-| `POST` | `/scrape/{source_id}` | Scrape a single source (background task, returns 202) |
+| `POST` | `/ingestion/scrape` | Trigger full RSS scraping (Celery task, returns `task_id`) |
+| `POST` | `/ingestion/scrape/{source_id}` | Scrape a single source (Celery task, returns `task_id`) |
+| `POST` | `/ingestion/sources` | Create a new source (with background feed validation) |
 
 ### Interactive Documentation
 
@@ -260,7 +309,7 @@ Kirikou uses Pydantic models for strict API contracts:
 ### Utility Schemas
 
 - **`SourceStats`** — Source activity statistics
-- **`ScrapeResponse`** — Background task trigger confirmation
+- **`ScrapeResponse`** — Task trigger confirmation with optional `task_id`
 
 ### Example Response
 
@@ -278,6 +327,16 @@ Kirikou uses Pydantic models for strict API contracts:
 }
 ```
 
+### Example Scrape Response
+
+```json
+{
+    "message": "Scraping for all sources started",
+    "status": "accepted",
+    "task_id": "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+}
+```
+
 ---
 
 ## 🚀 Getting Started
@@ -287,15 +346,24 @@ Kirikou uses Pydantic models for strict API contracts:
 - **macOS** (Apple Silicon M4 tested)
 - **Python 3.10+**
 - **PostgreSQL 16**
+- **Redis**
 - **Homebrew** (for macOS package management)
 
 ### Installation
 
-#### 1. Install PostgreSQL
+#### 1. Install PostgreSQL and Redis
 
 ```bash
-brew install postgresql@16
+brew install postgresql@16 redis
 brew services start postgresql@16
+brew services start redis
+```
+
+Verify Redis is running:
+
+```bash
+redis-cli ping
+# Should return: PONG
 ```
 
 #### 2. Create Database
@@ -335,6 +403,8 @@ Example `.env`:
 
 ```env
 DATABASE_URL=postgresql://localhost/kirikou_db
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/1
 REQUEST_TIMEOUT=10
 LOG_LEVEL=INFO
 SECRET_KEY=your-secret-key-here
@@ -347,10 +417,17 @@ python -m database.init_db
 psql kirikou_db < database/add_sources.sql
 ```
 
-#### 8. Start the API Server
+#### 8. Start Kirikou (3 processes)
 
 ```bash
+# Terminal 1: API Server
 uvicorn api.main:app --reload
+
+# Terminal 2: Celery Worker (executes scraping tasks)
+celery -A worker.celery_app worker --loglevel=info
+
+# Terminal 3: Celery Beat (triggers hourly scraping)
+celery -A worker.celery_app beat --loglevel=info
 ```
 
 Visit `http://127.0.0.1:8000/docs` to explore the API.
@@ -359,20 +436,31 @@ Visit `http://127.0.0.1:8000/docs` to explore the API.
 
 ## 💻 Usage
 
-### Running the API Server
+### Running the Full System
+
+Kirikou runs as 3 coordinated processes:
 
 ```bash
+# Terminal 1: API Server
 uvicorn api.main:app --reload
+
+# Terminal 2: Celery Worker
+celery -A worker.celery_app worker --loglevel=info
+
+# Terminal 3: Celery Beat (optional — for autonomous hourly scraping)
+celery -A worker.celery_app beat --loglevel=info
 ```
 
 ### Triggering RSS Scraping via API
 
 ```bash
-# Scrape all sources
+# Scrape all sources (dispatched to Celery worker)
 curl -X POST http://127.0.0.1:8000/ingestion/scrape
+# Returns: {"message": "Scraping for all sources started", "status": "accepted", "task_id": "..."}
 
 # Scrape a single source
 curl -X POST http://127.0.0.1:8000/ingestion/scrape/1
+# Returns: {"message": "Scraping for source 1 started", "status": "accepted", "task_id": "..."}
 ```
 
 ### Querying Articles
@@ -399,7 +487,7 @@ curl -X POST http://127.0.0.1:8000/ingestion/sources \
   -d '{"name": "Reuters", "url": "https://www.reutersagency.com/feed/", "country": "UK", "political_leaning": "center"}'
 ```
 
-### Running the RSS Scraper Directly
+### Running the RSS Scraper Directly (without Celery)
 
 ```bash
 python -m ingestion.feed_parser
@@ -432,10 +520,14 @@ kirikou/
 │       ├── articles.py          # Article endpoints
 │       ├── sources.py           # Source endpoints
 │       └── ingestion.py         # Scraping & source creation endpoints
+├── worker/                       # Celery workers (Week 6)
+│   ├── __init__.py
+│   ├── celery_app.py            # Celery app, config, Beat schedule
+│   └── tasks.py                 # Task definitions (scrape wrappers)
 ├── config.py                    # Configuration management
 ├── database/                    # Database layer (Week 4)
 │   ├── __init__.py
-│   ├── db.py                   # Engine, session management
+│   ├── db.py                   # Engine, session management, get_db dependency
 │   ├── init_db.py              # Database initialization
 │   ├── models.py               # SQLAlchemy ORM models
 │   ├── schemas.py              # Pydantic validation schemas
@@ -443,20 +535,20 @@ kirikou/
 │   ├── add_sources.sql         # Validated news sources
 │   ├── queries.sql             # Production SQL queries
 │   ├── seed_data.sql           # Test data
-│   └── utils.py                # Reusable query functions
+│   └── utils.py                # Reusable query functions (DI + standalone)
 ├── ingestion/                   # Data ingestion module (Week 3)
 │   ├── __init__.py
 │   ├── feed_parser.py          # RSS scraper
 │   └── validate_feeds.py       # Feed validation utility
 ├── docs/                        # Documentation
-│   └── DATABASE.md             # Database documentation
+│   ├── DATABASE.md             # Database documentation
+│   ├── CHANGELOG.md            # Detailed change history
+│   ├── LICENSE                  # MIT License
+│   └── README.md               # This file
 ├── logs/                        # Application logs
 ├── requirements.txt             # Python dependencies
 ├── .env                         # Environment variables (gitignored)
-├── .env.example                # Environment template
-├── CHANGELOG.md                # Detailed change history
-├── LICENSE                      # MIT License
-└── README.md                   # This file
+└── .env.example                # Environment template
 ```
 
 ---
@@ -482,9 +574,17 @@ Kirikou currently ingests from **10+ validated sources** across the political sp
 
 ## 🎯 Key Features
 
+### Autonomous Scraping with Celery Beat
+
+Celery Beat triggers RSS scraping every hour automatically. No manual intervention needed — Kirikou runs 24/7 as an autonomous agent. Scraping executes in a separate Celery worker process, keeping the API fast and responsive.
+
 ### RESTful API with Auto-Documentation
 
 FastAPI provides interactive Swagger documentation at `/docs`, showing all endpoints, request/response schemas, and allowing direct testing from the browser.
+
+### Dependency Injection
+
+FastAPI's dependency injection manages database sessions — one session per request, centralized lifecycle, route-controlled transactions. This pattern enables easy testing and clean separation of concerns.
 
 ### Pydantic Validation
 
@@ -493,10 +593,6 @@ All API inputs are validated through Pydantic schemas with custom validators:
 - URL format validation (must start with `http://` or `https://`)
 - Political leaning restricted to known values
 - Query parameter constraints (e.g., `limit` between 1-500, `days` between 1-30)
-
-### Background Task Processing
-
-API-triggered scraping runs in the background, returning 202 Accepted immediately. The server stays responsive while feeds are being fetched and articles are being stored.
 
 ### Automatic Deduplication
 
@@ -544,14 +640,15 @@ JOIN sources s2 ON a2.source_id = s2.id;
 - [x] CRUD endpoints for articles and sources
 - [x] Query parameter validation and filtering
 - [x] Auto-generated API documentation (Swagger)
-- [x] Background tasks for scraping operations
+- [x] Background tasks for lightweight operations
 
-### Phase 3: Modern Stack (🚧 Week 6 continued)
+### Phase 3: Async Architecture (✅ Complete - Week 6)
 
-- [ ] Celery workers for scheduled periodic scraping
-- [ ] Redis for caching and task queue
-- [ ] FastAPI dependency injection for database sessions
-- [ ] Scheduled periodic scraping (every hour)
+- [x] Celery workers for distributed task execution
+- [x] Redis as message broker and result backend
+- [x] FastAPI dependency injection for database sessions
+- [x] Celery Beat for autonomous hourly scraping
+- [x] Task ID tracking in API responses
 
 ### Phase 4: Security (📅 Week 7)
 
@@ -647,7 +744,7 @@ This project is part of a **12-week Python Backend Development Journey** buildin
 - **Week 3:** Networking, HTTP, and API consumption ✅
 - **Week 4:** SQL, PostgreSQL, and database design ✅
 - **Week 5:** ~~Flask~~ (Skipped — jumped directly to FastAPI)
-- **Week 6:** FastAPI, Pydantic, async, and background tasks 🚧 (Current)
+- **Week 6:** FastAPI, Pydantic, Celery, Redis, DI 🚧 (Current — Day 40)
 - **Week 7:** Authentication, authorization, and security
 - **Week 8:** Testing and quality assurance
 - **Week 9:** Docker and CI/CD
@@ -655,7 +752,7 @@ This project is part of a **12-week Python Backend Development Journey** buildin
 - **Week 11:** Cloud deployment and LLM integration
 - **Week 12:** Final polish and production deployment
 
-**Progress:** Day 38 of 84 (45% complete)
+**Progress:** Day 40 of 84 (48% complete)
 
 ---
 
@@ -682,6 +779,7 @@ Backend Development Journey 2026
 - **Anthropic Claude** — AI development mentor
 - **FastAPI** — Excellent framework and documentation
 - **PostgreSQL Community** — Excellent database documentation
+- **Celery Project** — Robust distributed task queue
 - **Python Community** — Rich ecosystem of libraries
 - News organizations providing RSS feeds for educational purposes
 

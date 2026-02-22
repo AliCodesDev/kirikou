@@ -4,9 +4,32 @@ All notable changes to Kirikou will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Week 6] - 2026-02-19
+## [Week 6] - 2026-02-21
 
 ### Added
+
+**FastAPI Dependency Injection (Day 39):**
+
+- `get_db()` generator dependency in `database/db.py` for FastAPI session management
+- One database session per request — centralized lifecycle management
+- Refactored 7 utility functions to accept injected `Session` parameter:
+  - `get_all_sources(db)`, `get_source_by_id(db)`, `get_recent_articles(db)`
+  - `get_articles_by_source(db)`, `get_source_stats(db)`, `get_article_by_id(db)`
+  - `create_source(db)` with `flush()` instead of `commit()` — route controls transaction
+- Standalone wrappers for CLI/background task compatibility:
+  - `get_all_sources_standalone()`, `get_source_by_id_standalone()`, etc.
+- All 3 route files updated to use `Depends(get_db)` pattern
+
+**Celery Workers & Redis (Day 40):**
+
+- Celery application (`worker/celery_app.py`) with Redis message broker
+- Task definitions (`worker/tasks.py`):
+  - `scrape_all_sources_task` — scrape all RSS sources via Celery worker
+  - `scrape_source_by_id_task` — scrape single source via Celery worker
+- Celery Beat schedule — automatic scraping every hour (autonomous operation)
+- Redis as message broker (`redis://localhost:6379/0`) and result backend (`redis://localhost:6379/1`)
+- Task ID tracking in scrape API responses for future status monitoring
+- `ScrapeResponse` schema updated with optional `task_id` field
 
 **FastAPI REST API (Days 36-38):**
 
@@ -19,8 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `GET /articles/stats` — Source activity statistics
   - `GET /articles/{id}` — Get a single article with full detail
   - `POST /sources` — Create a new source with background feed validation
-  - `POST /scrape` — Trigger full RSS scraping (background task)
-  - `POST /scrape/{source_id}` — Trigger scraping for a single source (background task)
+  - `POST /scrape` — Trigger full RSS scraping (Celery task)
+  - `POST /scrape/{source_id}` — Trigger scraping for a single source (Celery task)
 - Auto-generated Swagger documentation at `/docs`
 
 **Pydantic Schemas (Day 37):**
@@ -32,17 +55,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `ArticleResponse` — Article output with nested `SourceBrief`
 - `ArticleDetail` — Extended article response with description, author, scraped_at
 - `SourceStats` — Source activity statistics response
-- `ScrapeResponse` — Background task trigger response
+- `ScrapeResponse` — Background task trigger response with optional `task_id`
 - Custom validators: URL format validation, political leaning restriction to known values
 - Query parameter validation via `Query(ge=1, le=500)` replacing manual if-statements
-
-**Background Tasks (Day 38):**
-
-- Full RSS scraping triggered via API (`POST /scrape`)
-- Single-source scraping via API (`POST /scrape/{source_id}`)
-- Background feed URL validation on source creation
-- Source existence validation before scheduling scrape tasks
-- `scrape_source_by_id()` function composing existing feed parser utilities
 
 **API Architecture:**
 
@@ -54,11 +69,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Refactored database utility functions to return nested source dicts (for article responses)
-- Updated `get_recent_articles()`, `get_articles_by_source()`, `get_article_by_id()` with nested source structure
-- Added `limit` parameter to `get_articles_by_source()` for result capping
-- Converted `get_session_no_commit()` to a proper `@contextmanager` for consistent session management
-- Added `get_source_by_id()`, `get_article_by_id()`, `create_source()` utility functions
+- Refactored database utility functions to accept injected `Session` parameter (DI pattern)
+- Utility functions use `flush()` for write operations — routes control `commit()`
+- Scrape endpoints migrated from FastAPI `BackgroundTasks` to Celery tasks
+- Source creation retains `BackgroundTasks` for lightweight validation/logging
+- `feed_parser.py` updated to use standalone wrapper functions
+- Updated `config.py` with `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND` settings
+- Updated `database/__init__.py` to export `get_db`
 
 ### Technical Details
 
@@ -66,9 +83,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 **Pydantic Models:** 8 schemas with validation
 
-**Background Tasks:** 3 (full scrape, single source scrape, feed validation)
+**Celery Tasks:** 2 (full scrape, single source scrape)
 
-**Dependencies Added:** fastapi, uvicorn
+**Beat Schedule:** Scrape all sources every hour (3600s)
+
+**Dependencies Added:** fastapi, uvicorn, celery, redis
 
 ## [Week 4] - 2026-02-10
 
@@ -203,11 +222,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Progress Summary
 
-**Days Completed:** 38 of 84 (45%)
+**Days Completed:** 40 of 84 (48%)
 
-**Current Phase:** FastAPI API Layer ✅
+**Current Phase:** Async Architecture with Celery ✅
 
-**Next Phase:** Week 6 continued — Database integration with FastAPI, Celery background jobs
+**Next Phase:** Day 41 — Configuration & .env files, then Week 6 Integration Day
 
 **Technical Milestones:**
 
@@ -219,6 +238,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - ✅ Comprehensive documentation
 - ✅ FastAPI REST API with Pydantic validation
 - ✅ Background tasks for scraping and source validation
+- ✅ FastAPI Dependency Injection for database sessions
+- ✅ Celery workers with Redis broker for async scraping
+- ✅ Celery Beat for autonomous hourly scraping
 
 **Portfolio Highlights:**
 
@@ -227,7 +249,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Type-safe ORM with automatic relationships
 - RESTful API with 9 endpoints and auto-generated docs
 - Pydantic schemas with custom validators
-- Background task processing for RSS scraping
+- Dependency injection for testable database access
+- Celery workers with Redis for distributed task processing
+- Autonomous hourly scraping via Celery Beat
+- Task ID tracking for async job monitoring
 - Clean, documented codebase
 - Professional Git workflow with tagged milestones
 
@@ -235,12 +260,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Coming Next
 
-**Week 6 continued (Days 39-42):** FastAPI Database Integration & Async Workers
+**Week 6 continued (Days 41-42):** Configuration & Integration Day
 
-- FastAPI dependency injection for database sessions
-- Celery integration for scheduled periodic scraping
-- Redis as message broker for task queue
-- Configuration and environment management
+- Configuration and environment management review
+- Integration Day: refactor, document, tag milestone
 
 **Week 7 (Days 43-49):** Authentication & Security
 
