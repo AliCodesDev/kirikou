@@ -1,13 +1,11 @@
 from fastapi import FastAPI
-from config import Config
+from config import get_settings
 from api.routes import sources, articles, ingestion
 
-app = FastAPI(title=Config.APP_NAME, debug=Config.DEBUG)
-# Setup logging
-Config.setup_logging()
+settings = get_settings()
+settings.setup_logging()
 
-# Validate config
-Config.validate()
+app = FastAPI(title=settings.app_name, debug=settings.debug)
 
 
 @app.get("/")

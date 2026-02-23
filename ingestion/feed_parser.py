@@ -1,12 +1,13 @@
 import requests, feedparser, logging
-from config import Config
+from config import get_settings
 from datetime import datetime
 from dateutil import parser as date_parser
 from database.utils import get_all_sources_standalone, save_articles_batch, get_source_by_id_standalone
 
+settings = get_settings()
 
 # Setup logging
-Config.setup_logging()
+settings.setup_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -24,7 +25,7 @@ def fetch_feed(url: str) -> feedparser.FeedParserDict | None:
 
     logger.info(f"Fetching RSS feed: {url}")
     try:
-        response = requests.get(url, timeout=Config.REQUEST_TIMEOUT)
+        response = requests.get(url, timeout=settings.request_timeout)
         response.raise_for_status()
         logger.info(f"Fetching RSS feed {url} successful !")
         parsed_xml = feedparser.parse(response.content)

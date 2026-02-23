@@ -7,7 +7,6 @@ import logging
 
 from database.models import Source, Article
 from database.db import get_session, get_session_no_commit
-from config import Config
 
 logger = logging.getLogger(__name__)
 

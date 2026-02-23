@@ -1,54 +1,55 @@
 import os 
 import logging
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import SecretStr, field_validator
+from functools import lru_cache
 
-# Load .env file (development only)
-load_dotenv()
 
-class Config:
+class Settings(BaseSettings):
 
-    # Database
-    DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost/kirikou_db')
+    model_config = SettingsConfigDict(
+        env_file='.env', 
+        env_file_encoding='utf-8',
+        case_sensitive=False,
+        extra="ignore"
+        )
 
-    # Celery
-    CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-    CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/1')
+    # Required (no default = crash if missing)
+    database_url: str
+    secret_key: SecretStr
 
-    # Logging
-    os.makedirs('logs', exist_ok=True)
-    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
-    LOG_FILE = os.environ.get('LOG_FILE', 'logs/kirikou.log')
+    log_level: str = 'INFO'
+    log_file: str = 'logs/kirikou.log'
+    debug: bool = False
+    app_name: str = "Kirikou Media Intelligence"
+    fetch_interval: int = 3600
+    request_timeout: int = 10
+    celery_broker_url: str = 'redis://localhost:6379/0'
+    celery_result_backend: str = 'redis://localhost:6379/1'
 
-    # Application 
-    DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
-    APP_NAME = os.environ.get('APP_NAME', "Kirikou Media Intelligence")
-
-    # RSS scraping
-    FETCH_INTERVAL = int(os.environ.get('FETCH_INTERVAL', '3600'))
-    REQUEST_TIMEOUT = int(os.environ.get('REQUEST_TIMEOUT', '10'))
-    SECRET_KEY = os.environ.get('SECRET_KEY')
-
+    @field_validator("log_level")
     @classmethod
-    def setup_logging(cls):
+    def validate_log_level(cls, v: str) -> str:
+        allowed = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+        if v.upper() not in allowed:
+            raise ValueError(f"log_level must be one of {allowed}")
+        return v.upper()
+    
+    def setup_logging(self):
+        os.makedirs('logs', exist_ok=True)
         logging.basicConfig(
-            level = getattr(logging, cls.LOG_LEVEL),
+            level = getattr(logging, self.log_level),
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             handlers=[
-                logging.FileHandler(cls.LOG_FILE),
+                logging.FileHandler(self.log_file),
                 logging.StreamHandler()
             ]
         )
 
-    @classmethod
-    def validate(cls):
-        """Ensure required variables are set."""
-        required = ['DATABASE_URL']
-        missing = [var for var in required if not getattr(cls, var)]
-        if missing:
-            raise ValueError(f"Missing required env vars: {missing}") 
+
+@lru_cache()
+def get_settings() -> Settings:
+    return Settings()
+
         
-    
-
-
-
 

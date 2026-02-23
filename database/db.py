@@ -10,14 +10,16 @@ from sqlalchemy import create_engine
 from collections.abc import Generator
 from contextlib import contextmanager
 from sqlalchemy.orm import sessionmaker, Session
-from config import Config
+from config import get_settings
 import logging
 
 logger = logging.getLogger(__name__)
 
+settings = get_settings()
+
 # Create engine (connection pool to database)
 engine = create_engine(
-    Config.DATABASE_URL,
+    settings.database_url,
     echo=False,  # Set to True to see SQL queries (debugging)
     pool_size=5,  # Connection pool size
     max_overflow=10  # Max connections beyond pool_size

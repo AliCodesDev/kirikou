@@ -1,19 +1,20 @@
 import psycopg2
 import logging
 from pathlib import Path
-from config import Config
+from config import get_settings
 
-Config.setup_logging()
+settings = get_settings()
+settings.setup_logging()
 logger = logging.getLogger(__name__)
 
 def init_database():
     """Initialize the database with the schema."""
     conn = None  # Initialize to None for finally block
     cursor = None
-    
+
     try:
         # Connect to kirikou_db
-        conn = psycopg2.connect(Config.DATABASE_URL)
+        conn = psycopg2.connect(settings.database_url)
         logger.info("Connected to database")
 
         # Create a cursor

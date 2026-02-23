@@ -1,10 +1,12 @@
 from celery import Celery
-from config import Config
+from config import get_settings
+
+settings = get_settings()
 
 celery_app = Celery(
     'kirikou',
-    broker=Config.CELERY_BROKER_URL,
-    backend=Config.CELERY_RESULT_BACKEND
+    broker=settings.celery_broker_url,
+    backend=settings.celery_result_backend
 )
 
 celery_app.conf.update(
@@ -25,8 +27,7 @@ celery_app.conf.beat_schedule = {
 }
 
 if __name__ == "__main__":
-    Config.validate()  # Ensure all required config is set
-    Config.setup_logging()  # Set up logging before starting the worker
+    settings.setup_logging()  # Set up logging before starting the worker
     celery_app.start()
 
 
