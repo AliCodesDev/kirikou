@@ -8,29 +8,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-**FastAPI Dependency Injection (Day 39):**
-
-- `get_db()` generator dependency in `database/db.py` for FastAPI session management
-- One database session per request — centralized lifecycle management
-- Refactored 7 utility functions to accept injected `Session` parameter:
-  - `get_all_sources(db)`, `get_source_by_id(db)`, `get_recent_articles(db)`
-  - `get_articles_by_source(db)`, `get_source_stats(db)`, `get_article_by_id(db)`
-  - `create_source(db)` with `flush()` instead of `commit()` — route controls transaction
-- Standalone wrappers for CLI/background task compatibility:
-  - `get_all_sources_standalone()`, `get_source_by_id_standalone()`, etc.
-- All 3 route files updated to use `Depends(get_db)` pattern
-
-**Celery Workers & Redis (Day 40):**
-
-- Celery application (`worker/celery_app.py`) with Redis message broker
-- Task definitions (`worker/tasks.py`):
-  - `scrape_all_sources_task` — scrape all RSS sources via Celery worker
-  - `scrape_source_by_id_task` — scrape single source via Celery worker
-- Celery Beat schedule — automatic scraping every hour (autonomous operation)
-- Redis as message broker (`redis://localhost:6379/0`) and result backend (`redis://localhost:6379/1`)
-- Task ID tracking in scrape API responses for future status monitoring
-- `ScrapeResponse` schema updated with optional `task_id` field
-
 **FastAPI REST API (Days 36-38):**
 
 - FastAPI application with modular route organization
@@ -59,6 +36,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Custom validators: URL format validation, political leaning restriction to known values
 - Query parameter validation via `Query(ge=1, le=500)` replacing manual if-statements
 
+**FastAPI Dependency Injection (Day 39):**
+
+- `get_db()` generator dependency in `database/db.py` for FastAPI session management
+- One database session per request — centralized lifecycle management
+- Refactored 7 utility functions to accept injected `Session` parameter:
+  - `get_all_sources(db)`, `get_source_by_id(db)`, `get_recent_articles(db)`
+  - `get_articles_by_source(db)`, `get_source_stats(db)`, `get_article_by_id(db)`
+  - `create_source(db)` with `flush()` instead of `commit()` — route controls transaction
+- Standalone wrappers for CLI/background task compatibility:
+  - `get_all_sources_standalone()`, `get_source_by_id_standalone()`, etc.
+- All 3 route files updated to use `Depends(get_db)` pattern
+
 **API Architecture:**
 
 - Route organization: `api/routes/articles.py`, `api/routes/sources.py`, `api/routes/ingestion.py`
@@ -66,6 +55,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Nested JSON responses (articles embed source data)
 - Proper HTTP status codes (200, 201, 202, 400, 404, 422)
 - Input validation at both query parameter and request body levels
+
+**Celery Workers & Redis (Day 40):**
+
+- Celery application (`worker/celery_app.py`) with Redis message broker
+- Task definitions (`worker/tasks.py`):
+  - `scrape_all_sources_task` — scrape all RSS sources via Celery worker
+  - `scrape_source_by_id_task` — scrape single source via Celery worker
+- Celery Beat schedule — automatic scraping every hour (autonomous operation)
+- Redis as message broker (`redis://localhost:6379/0`) and result backend (`redis://localhost:6379/1`)
+- Task ID tracking in scrape API responses for future status monitoring
+- `ScrapeResponse` schema updated with optional `task_id` field
+
+**Pydantic Settings Configuration (Day 41):**
+
+- Migrated from manual `os.environ.get()` config to Pydantic `BaseSettings`
+- Type-safe validation for all settings (auto-cast strings to `int`, `bool`, etc.)
+- `SecretStr` for `secret_key` — prevents accidental secret leaking in logs
+- `@field_validator` for `log_level` — rejects invalid values at startup
+- `@lru_cache` singleton via `get_settings()` — one shared instance app-wide
+- `.env.example` template for project documentation
+- Removed `python-dotenv` dependency — Pydantic Settings handles `.env` natively
+- Removed manual `validate()` method — Pydantic validates on instantiation (fail fast)
+- Updated 6 files to use new settings pattern: `main.py`, `db.py`, `celery_app.py`, `feed_parser.py`, `init_db.py`, `utils.py`
 
 ### Changed
 
@@ -222,11 +234,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Progress Summary
 
-**Days Completed:** 40 of 84 (48%)
+**Days Completed:** 42 of 84 (50%)
 
-**Current Phase:** Async Architecture with Celery ✅
+**Current Phase:** Week 6 Complete ✅ — Async Architecture
 
-**Next Phase:** Day 41 — Configuration & .env files, then Week 6 Integration Day
+**Next Phase:** Week 7 — Authentication & Security (JWT, rate limiting, CORS)
 
 **Technical Milestones:**
 
@@ -255,15 +267,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Task ID tracking for async job monitoring
 - Clean, documented codebase
 - Professional Git workflow with tagged milestones
+- Pydantic Settings with type-safe validation and SecretStr
 
 ---
 
 ## Coming Next
 
-**Week 6 continued (Days 41-42):** Configuration & Integration Day
+**Week 6 Complete** ✅
 
-- Configuration and environment management review
-- Integration Day: refactor, document, tag milestone
+- FastAPI REST API with Pydantic validation
+- Celery workers with Redis for async scraping
+- Pydantic Settings for type-safe configuration
 
 **Week 7 (Days 43-49):** Authentication & Security
 

@@ -3,12 +3,12 @@ Week 4 Demo: Complete Database Layer
 Demonstrates all features built during Week 4
 """
 from database.utils import (
-    get_all_sources,
-    get_recent_articles,
-    get_source_stats,
+    get_all_sources_standalone,
+    get_recent_articles_standalone,
+    get_source_stats_standalone,
     get_inactive_sources,
     get_duplicate_stories,
-    get_articles_by_source
+    get_articles_by_source_standalone
 )
 from database import get_session, Article, Source
 from sqlalchemy.orm import joinedload
@@ -22,7 +22,7 @@ print("="*70)
 # 1. Sources Overview
 print("\n📰 NEWS SOURCES")
 print("-" * 70)
-sources = get_all_sources()
+sources = get_all_sources_standalone()
 print(f"Total sources configured: {len(sources)}")
 print("\nPolitical spectrum coverage:")
 by_leaning = {}
@@ -45,7 +45,7 @@ for country, count in sorted(by_country.items()):
 # 2. Database Statistics
 print("\n📊 DATABASE STATISTICS")
 print("-" * 70)
-stats = get_source_stats()
+stats = get_source_stats_standalone()
 total_articles = sum(s['total_articles'] for s in stats)
 total_recent = sum(s['articles_last_7d'] for s in stats)
 print(f"Total articles ingested: {total_articles}")
@@ -58,11 +58,11 @@ for stat in stats[:5]:
 # 3. Recent Articles
 print("\n📝 RECENT ARTICLES (Last 10)")
 print("-" * 70)
-recent = get_recent_articles(10)
+recent = get_recent_articles_standalone(10)
 for i, article in enumerate(recent, 1):
     published = article['published_at'].strftime('%Y-%m-%d %H:%M') if isinstance(article['published_at'], datetime) else article['published_at']
     print(f"{i}. {article['title'][:60]}...")
-    print(f"   📍 {article['source_name']} ({article['country']}) | 🕐 {published}")
+    print(f"   📍 {article['source']['name']} ({article['source']['political_leaning']}) | 🕐 {published}")
     if i < 10:
         print()
 

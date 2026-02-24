@@ -18,7 +18,7 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 
 ## 📊 Project Status
 
-🚧 **Week 6, Day 40 of 12-Week Build** | Phase: Async Architecture
+🚧 **Week 6, Day 42 of 12-Week Build** | Phase: Async Architecture ✅
 
 ### ✅ Completed Features
 
@@ -30,6 +30,15 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 - ✅ Process isolation — scraping runs in separate worker, API stays fast
 - ✅ FastAPI dependency injection for database session management
 - ✅ One session per request with route-controlled transactions
+
+**Production Configuration** — *NEW in Week 6*
+
+- ✅ Pydantic Settings for type-safe configuration management
+- ✅ Automatic `.env` loading with type casting and validation
+- ✅ `SecretStr` for sensitive values — secrets never leak in logs
+- ✅ `@lru_cache` singleton — one shared settings instance app-wide
+- ✅ Fail-fast validation — missing `DATABASE_URL` or `SECRET_KEY` crashes immediately with clear error
+- ✅ `.env.example` template for easy project setup
 
 **The Nervous System (API Layer)**
 
@@ -75,19 +84,20 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 
 ### 📈 Current Data
 
-- **842+ articles** ingested from 10+ global news sources
+- **1610+ articles** ingested from 10+ global news sources
 - **9 API endpoints** with auto-generated documentation
 - **8 Pydantic schemas** with validation and custom validators
 - **2 Celery tasks** with hourly Beat schedule
+- **10+ config settings** with type-safe Pydantic validation
+
 - **Political spectrum coverage:** Center, Center-Left, Right, Tech-Focus
 - **Geographic diversity:** UK, US, Germany, Qatar
 - **Deduplication:** Automatically skips duplicate URLs
 
 ### 🎯 Next Up
 
-- **Day 41:** Configuration and environment management
-- **Day 42:** Week 6 Integration Day — refactor, document, tag milestone
-- **Week 7:** JWT authentication, rate limiting, CORS
+- **Week 7:** JWT authentication, rate limiting, CORS, input sanitization
+- **Week 8:** Comprehensive pytest test suite
 - **Week 11:** LLM integration for RAG-based bias analysis
 
 ---
@@ -396,18 +406,9 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-# Edit .env with your database credentials
-```
-
-Example `.env`:
-
-```env
-DATABASE_URL=postgresql://localhost/kirikou_db
-CELERY_BROKER_URL=redis://localhost:6379/0
-CELERY_RESULT_BACKEND=redis://localhost:6379/1
-REQUEST_TIMEOUT=10
-LOG_LEVEL=INFO
-SECRET_KEY=your-secret-key-here
+# Edit .env — generate a secret key:
+python -c "import secrets; print(secrets.token_hex(32))"
+# Paste the output as your SECRET_KEY value
 ```
 
 #### 7. Initialize Database
@@ -744,7 +745,7 @@ This project is part of a **12-week Python Backend Development Journey** buildin
 - **Week 3:** Networking, HTTP, and API consumption ✅
 - **Week 4:** SQL, PostgreSQL, and database design ✅
 - **Week 5:** ~~Flask~~ (Skipped — jumped directly to FastAPI)
-- **Week 6:** FastAPI, Pydantic, Celery, Redis, DI 🚧 (Current — Day 40)
+- **Week 6:** FastAPI, Pydantic, Celery, Redis, DI, Pydantic Settings ✅ (Complete — Day 42)
 - **Week 7:** Authentication, authorization, and security
 - **Week 8:** Testing and quality assurance
 - **Week 9:** Docker and CI/CD
@@ -752,7 +753,7 @@ This project is part of a **12-week Python Backend Development Journey** buildin
 - **Week 11:** Cloud deployment and LLM integration
 - **Week 12:** Final polish and production deployment
 
-**Progress:** Day 40 of 84 (48% complete)
+**Progress:** Day 42 of 84 (50% complete) 🎉
 
 ---
 
