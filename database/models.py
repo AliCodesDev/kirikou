@@ -3,7 +3,7 @@ SQLAlchemy models for Kirikou database.
 
 Defines Source and Article tables as Python classes.
 """
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 
@@ -70,12 +70,26 @@ class Article(Base):
             'description': self.description,
             'content': self.content,
             'author': self.author,
-            'published_at': self.published_at.isoformat() if self.published_at else None,
+            'published_at': self.published_at.isoformat() if self.published_at else None, 
             'scraped_at': self.scraped_at.isoformat() if self.scraped_at else None,
             'url': self.url
         }
     
-    
+
+class User(Base):
+    """
+    User model for authentication.
+    """
+    __tablename__ = 'users'
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String, unique=True, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.now)
 
 
+    def __repr__(self):
+        return f"<User(id={self.id}, username='{self.username}')>"
 

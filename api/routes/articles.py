@@ -35,3 +35,5 @@ def get_article(article_id: int, db: Session = Depends(get_db)):
     return article
 
 
+
+

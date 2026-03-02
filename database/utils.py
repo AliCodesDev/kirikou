@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 from sqlalchemy import CursorResult, func, text, case
 from sqlalchemy.orm import joinedload, Session
 import logging
-
-from database.models import Source, Article
+from database.models import Source, Article, User
 from database.db import get_session, get_session_no_commit
+
 
 logger = logging.getLogger(__name__)
 
@@ -499,3 +499,116 @@ def get_article_by_id(db: Session, article_id: int) -> Optional[Dict]:
         }
     else:
         return None
+    
+
+def get_user_by_username_standalone(username: str) -> Optional[Dict]:
+    """Standalone version for CLI scripts (creates own session)."""
+    with get_session_no_commit() as session:
+        return get_user_by_username(session, username)
+
+def get_user_by_username(db: Session, username: str) -> Optional[Dict]:
+    """
+    Get a user by their username.
+    
+    Args:
+        db: Database session
+        username: Username to search for
+        
+    Returns:
+        User dictionary or None if not found
+    """
+    user = db.query(User).filter(User.username == username).first()
+    if user:
+        return {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'hashed_password': user.hashed_password,
+            'is_active': user.is_active,
+            'created_at': user.created_at
+        }
+    return None
+
+
+def get_user_by_id_standalone(user_id: int) -> Optional[Dict]:
+    """Standalone version for CLI scripts (creates own session)."""
+    with get_session_no_commit() as session:
+        return get_user_by_id(session, user_id)
+
+def get_user_by_id(db: Session, user_id: int) -> Optional[Dict]:
+    """
+    Get a user by their ID.
+    
+    Args:
+        db: Database session
+        user_id: ID of the user
+        
+    Returns:
+        User dictionary or None if not found
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if user:
+        return {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'is_active': user.is_active,
+            'created_at': user.created_at
+        }
+    return None
+
+
+def create_user(db: Session, username: str, email: str, hashed_password: str) -> Dict:
+    """Parameter is already hashed — database layer just stores it."""
+    new_user = User(
+        username=username,
+        email=email,
+        hashed_password=hashed_password,
+        is_active=True
+    )
+    db.add(new_user)
+    db.flush()  # Get ID without committing
+    db.refresh(new_user)
+    
+    return {
+        'id': new_user.id,
+        'username': new_user.username,
+        'email': new_user.email,
+        'is_active': new_user.is_active,
+        'created_at': new_user.created_at
+    }
+
+
+def get_user_by_email(db: Session, email: str) -> Optional[Dict]:
+    """
+    Get a user by their email address.
+    
+    Args:
+        db: Database session
+        email: Email address to search for
+        
+    Returns:
+        User dictionary or None if not found
+    """
+    user = db.query(User).filter(User.email == email).first()
+    if user:
+        return {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'is_active': user.is_active,
+            'created_at': user.created_at
+        }
+    return None
+
+def get_user_by_email_standalone(email: str) -> Optional[Dict]:
+    """Standalone version for CLI scripts (creates own session)."""
+    with get_session_no_commit() as session:
+        return get_user_by_email(session, email)
+
+
+
+
+
+
+

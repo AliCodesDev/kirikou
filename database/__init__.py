@@ -6,7 +6,7 @@ Provides:
 - Session management: get_session, engine
 - Utility functions: get_all_sources, save_articles_batch, etc.
 """
-from database.models import Base, Source, Article
+from database.models import Base, Source, Article, User
 from database.db import engine, get_session, get_session_no_commit, get_db
 from database.utils import (
     get_all_sources,
@@ -23,6 +23,7 @@ __all__ = [
     'Base',
     'Source',
     'Article',
+    'User',
     
     # Session management
     'engine',

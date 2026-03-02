@@ -17,7 +17,10 @@ class Settings(BaseSettings):
     # Required (no default = crash if missing)
     database_url: str
     secret_key: SecretStr
+    jwt_secret_key: SecretStr
+    jwt_algorithm: str = 'HS256'
 
+    jwt_expire_minutes: int = 60
     log_level: str = 'INFO'
     log_file: str = 'logs/kirikou.log'
     debug: bool = False
@@ -49,7 +52,8 @@ class Settings(BaseSettings):
 
 @lru_cache()
 def get_settings() -> Settings:
-    return Settings()
+    # Pydantic Settings loads from .env automatically
+    return Settings() # type: ignore[call-arg]
 
         
 

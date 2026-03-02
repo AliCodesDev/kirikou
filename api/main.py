@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from config import get_settings
 from api.routes import sources, articles, ingestion
+from auth import routes as auth_routes
 
 settings = get_settings()
 settings.setup_logging()
@@ -19,6 +20,9 @@ def read_root():
 app.include_router(sources.router)
 app.include_router(articles.router)
 app.include_router(ingestion.router)
+app.include_router(auth_routes.router)
+
+
 
 
 

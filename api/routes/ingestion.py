@@ -5,6 +5,7 @@ from database import utils as db_utils
 from sqlalchemy.orm import Session
 from database.db import get_db
 from worker.tasks import scrape_all_sources_task, scrape_source_by_id_task
+from auth.dependencies import get_current_user
 
 
 router = APIRouter(prefix="/ingestion", tags=["Ingestion"])
@@ -17,7 +18,7 @@ def scrape_all_sources():
 
 
 @router.post("/scrape/{source_id}", status_code=202, response_model=ScrapeResponse)
-def trigger_scraping_source(source_id: int, db: Session = Depends(get_db)):
+def trigger_scraping_source(source_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """Endpoint to trigger scraping for a specific source."""
     source = db_utils.get_source_by_id(db, source_id)
     if not source:
@@ -27,7 +28,7 @@ def trigger_scraping_source(source_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/sources", status_code=201, response_model=ScrapeResponse)
-def create_source(source_data: SourceCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def create_source(source_data: SourceCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """Endpoint to create a new news source."""
     new_source = db_utils.create_source(db, source_data.model_dump())
 

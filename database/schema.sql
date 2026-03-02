@@ -25,6 +25,20 @@ CREATE TABLE articles (
     FOREIGN KEY (source_id) REFERENCES sources(id)
 );
 
+-- Users table (for future authentication/authorization)
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    hashed_password TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
+
+
 
 -- ==============================================
 -- INDEXES FOR QUERY OPTIMIZATION
@@ -57,3 +71,4 @@ CREATE INDEX idx_articles_title ON articles(title);
 -- - sources.name (UNIQUE)
 -- - articles.id (PRIMARY KEY)
 -- - articles.url (UNIQUE)
+
