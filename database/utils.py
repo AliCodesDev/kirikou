@@ -525,7 +525,8 @@ def get_user_by_username(db: Session, username: str) -> Optional[Dict]:
             'email': user.email,
             'hashed_password': user.hashed_password,
             'is_active': user.is_active,
-            'created_at': user.created_at
+            'created_at': user.created_at,
+            'role': user.role
         }
     return None
 
@@ -553,7 +554,8 @@ def get_user_by_id(db: Session, user_id: int) -> Optional[Dict]:
             'username': user.username,
             'email': user.email,
             'is_active': user.is_active,
-            'created_at': user.created_at
+            'created_at': user.created_at,
+            'role': user.role
         }
     return None
 
@@ -575,6 +577,7 @@ def create_user(db: Session, username: str, email: str, hashed_password: str) ->
         'username': new_user.username,
         'email': new_user.email,
         'is_active': new_user.is_active,
+        'role': new_user.role,
         'created_at': new_user.created_at
     }
 

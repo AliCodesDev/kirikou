@@ -12,10 +12,11 @@ logger = logging.getLogger(__name__)
 def create_access_token(data: dict) -> str:
     
     payload = {
-        "sub": data.get("user_id"),  # Subject of the token (ex user ID)
+        "sub": str(data.get("user_id")),  # Subject of the token (ex user ID)
         "username": data.get("username"),  # Additional user info
         "exp": datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expire_minutes),  # Expiration time
-        "iat": datetime.now(timezone.utc)  # Issued at time
+        "iat": datetime.now(timezone.utc),  # Issued at time
+        "role": data.get("role")  # User role for authorization
     }
 
     token = jwt.encode(payload, settings.jwt_secret_key.get_secret_value(), algorithm=settings.jwt_algorithm)

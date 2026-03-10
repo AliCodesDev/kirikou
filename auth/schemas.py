@@ -28,6 +28,7 @@ class UserResponse(BaseModel):
     username: str
     email: str
     is_active: bool
+    role: str
     created_at: datetime
 
 class TokenResponse(BaseModel):

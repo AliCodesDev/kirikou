@@ -32,7 +32,7 @@ def login_user(data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     user = authenticate_user(db, data.username, data.password)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid username or password")
-    token_data = {"user_id": user['id'], "username": user['username']}
+    token_data = {"user_id": user['id'], "username": user['username'], "role": user['role']}
     access_token = create_access_token(token_data)
     return TokenResponse(access_token=access_token)
 

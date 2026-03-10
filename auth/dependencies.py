@@ -28,7 +28,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 
     try:
         payload = verify_access_token(token)
-        user = db_utils.get_user_by_id(db, payload["sub"])
+        user = db_utils.get_user_by_id(db, int(payload["sub"]))
         
         if user is None:
             # This will now skip the next 'except' blocks and go straight to the client
@@ -50,4 +50,23 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         # This is a server/logic error, maybe a 500 is better here?
         logger.critical(f"System error in auth: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+def require_role(required_role: str):
+    """
+    Factory that creates a role-checking dependency.
+    
+    Usage:
+        @router.post("/admin-only")
+        def admin_route(user: dict = Depends(require_role("admin"))):
+            ...
+    """
+    def role_checker(current_user: dict = Depends(get_current_user)) -> dict:
+        if current_user.get("role") != required_role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Requires {required_role} role"
+            )
+        return current_user
+    return role_checker
 

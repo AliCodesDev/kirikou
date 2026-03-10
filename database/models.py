@@ -6,6 +6,7 @@ Defines Source and Article tables as Python classes.
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
+from auth.roles import UserRole
 
 
 # Base class for all models
@@ -88,6 +89,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.now)
+    role = Column(String, default=UserRole.READER, nullable=False)
 
 
     def __repr__(self):
