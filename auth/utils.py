@@ -3,7 +3,7 @@ from database.utils import get_user_by_username
 from typing import Optional, Dict
 from sqlalchemy.orm import Session
 
-pwd_context = CryptContext(schemes=["bcrypt"])
+pwd_context = CryptContext(schemes=["bcrypt"], bcrypt__rounds=12, deprecated="auto")
 
 
 

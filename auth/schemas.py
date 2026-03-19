@@ -18,6 +18,7 @@ class UserCreate(BaseModel):
     )
     password: str = Field(
         min_length=8,
+        max_length=128,
         description="Password for the user account"
     )
 
