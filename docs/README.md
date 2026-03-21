@@ -18,11 +18,23 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 
 ## 📊 Project Status
 
-🚧 **Week 6, Day 42 of 12-Week Build** | Phase: Async Architecture ✅
+🚧 **Week 7, Day 45 of 12-Week Build** | Phase: Authentication & Security ✅
 
 ### ✅ Completed Features
 
-**Async Workers (Celery + Redis)** — *NEW in Week 6*
+**Authentication & Security** — *NEW in Week 7*
+
+- ✅ JWT authentication with HS256 signing (register + login)
+- ✅ Role-Based Access Control (RBAC) with `admin` and `reader` roles
+- ✅ `require_role()` dependency factory for protecting endpoints
+- ✅ Hardened `CryptContext` — explicit bcrypt rounds + `deprecated="auto"` for future-proof rehashing
+- ✅ Password validation — min 8 / max 128 characters (bcrypt truncates at 72 bytes)
+- ✅ `SecretStr` for both `SECRET_KEY` and `JWT_SECRET_KEY` — secrets never leak in logs
+- ✅ Generic login error messages — no username/password enumeration
+- ✅ Password hashes excluded from all API responses
+- ✅ `.env` gitignored, no hardcoded secrets in codebase
+
+**Async Workers (Celery + Redis)**
 
 - ✅ Celery workers with Redis message broker for distributed task processing
 - ✅ Celery Beat scheduler — autonomous hourly RSS scraping
@@ -31,14 +43,13 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 - ✅ FastAPI dependency injection for database session management
 - ✅ One session per request with route-controlled transactions
 
-**Production Configuration** — *NEW in Week 6*
+**Production Configuration**
 
 - ✅ Pydantic Settings for type-safe configuration management
 - ✅ Automatic `.env` loading with type casting and validation
-- ✅ `SecretStr` for sensitive values — secrets never leak in logs
 - ✅ `@lru_cache` singleton — one shared settings instance app-wide
 - ✅ Fail-fast validation — missing `DATABASE_URL` or `SECRET_KEY` crashes immediately with clear error
-- ✅ `.env.example` template for easy project setup
+- ✅ `.env.example` template with all settings and generation instructions
 
 **The Nervous System (API Layer)**
 
@@ -85,9 +96,10 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 ### 📈 Current Data
 
 - **1610+ articles** ingested from 10+ global news sources
-- **9 API endpoints** with auto-generated documentation
-- **8 Pydantic schemas** with validation and custom validators
+- **11 API endpoints** with auto-generated documentation
+- **11 Pydantic schemas** with validation and custom validators
 - **2 Celery tasks** with hourly Beat schedule
+- **2 user roles** (admin, reader) with RBAC enforcement
 - **10+ config settings** with type-safe Pydantic validation
 
 - **Political spectrum coverage:** Center, Center-Left, Right, Tech-Focus
@@ -96,8 +108,8 @@ Kirikou is not a news aggregator—it's an intelligence agent that *analyzes* ho
 
 ### 🎯 Next Up
 
-- **Week 7:** JWT authentication, rate limiting, CORS, input sanitization
 - **Week 8:** Comprehensive pytest test suite
+- **Week 9:** Docker containerization
 - **Week 11:** LLM integration for RAG-based bias analysis
 
 ---
@@ -206,9 +218,14 @@ Running Processes:
 - **python-dotenv** — Environment variable management
 - **logging** — Comprehensive application logging
 
+### Authentication & Security
+
+- **PyJWT** — JWT token creation and verification (HS256)
+- **passlib[bcrypt]** — Password hashing with CryptContext
+- **bcrypt** — Industry-standard password hashing algorithm
+
 ### Planned Technologies
 
-- **JWT Auth** (Week 7) — Authentication and authorization
 - **Docker** (Week 9) — Containerization for deployment
 - **pytest** (Week 8) — Comprehensive test suite
 - **LLM API** (Week 11) — OpenAI/Anthropic/Google for bias analysis
@@ -238,7 +255,14 @@ Running Processes:
 | `GET` | `/articles/stats` | Source activity statistics |
 | `GET` | `/articles/{id}` | Get a single article with full detail |
 
-### Ingestion
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/auth/register` | Register a new user (username, email, password) |
+| `POST` | `/auth/login` | Authenticate and receive JWT token |
+
+### Ingestion (🔒 Admin only)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -520,17 +544,25 @@ kirikou/
 │       ├── __init__.py
 │       ├── articles.py          # Article endpoints
 │       ├── sources.py           # Source endpoints
-│       └── ingestion.py         # Scraping & source creation endpoints
+│       └── ingestion.py         # Scraping & source creation endpoints (🔒 admin)
+├── auth/                         # Authentication & security (Week 7)
+│   ├── __init__.py
+│   ├── routes.py                # Register & login endpoints
+│   ├── jwt_handler.py           # JWT token creation & verification
+│   ├── dependencies.py          # get_current_user, require_role (RBAC)
+│   ├── utils.py                 # Password hashing with bcrypt CryptContext
+│   ├── schemas.py               # UserCreate, UserResponse, TokenResponse
+│   └── roles.py                 # UserRole enum (ADMIN, READER)
 ├── worker/                       # Celery workers (Week 6)
 │   ├── __init__.py
 │   ├── celery_app.py            # Celery app, config, Beat schedule
 │   └── tasks.py                 # Task definitions (scrape wrappers)
-├── config.py                    # Configuration management
+├── config.py                    # Pydantic Settings (type-safe configuration)
 ├── database/                    # Database layer (Week 4)
 │   ├── __init__.py
 │   ├── db.py                   # Engine, session management, get_db dependency
 │   ├── init_db.py              # Database initialization
-│   ├── models.py               # SQLAlchemy ORM models
+│   ├── models.py               # SQLAlchemy ORM models (Source, Article, User)
 │   ├── schemas.py              # Pydantic validation schemas
 │   ├── schema.sql              # PostgreSQL schema with indexes
 │   ├── add_sources.sql         # Validated news sources
@@ -549,7 +581,7 @@ kirikou/
 ├── logs/                        # Application logs
 ├── requirements.txt             # Python dependencies
 ├── .env                         # Environment variables (gitignored)
-└── .env.example                # Environment template
+└── .env.example                # Environment template (all settings documented)
 ```
 
 ---
@@ -651,12 +683,14 @@ JOIN sources s2 ON a2.source_id = s2.id;
 - [x] Celery Beat for autonomous hourly scraping
 - [x] Task ID tracking in API responses
 
-### Phase 4: Security (📅 Week 7)
+### Phase 4: Security (✅ Complete - Week 7)
 
-- [ ] JWT authentication
-- [ ] Rate limiting
-- [ ] CORS configuration
-- [ ] Input sanitization
+- [x] JWT authentication with HS256 signing
+- [x] User registration and login endpoints
+- [x] Role-Based Access Control (RBAC) — admin/reader roles
+- [x] Hardened password hashing (bcrypt, explicit rounds, deprecated="auto")
+- [x] Password length validation (8-128 characters)
+- [x] Security audit — no hash leaks, generic errors, no hardcoded secrets
 
 ### Phase 5: Testing (📅 Week 8)
 
@@ -745,15 +779,15 @@ This project is part of a **12-week Python Backend Development Journey** buildin
 - **Week 3:** Networking, HTTP, and API consumption ✅
 - **Week 4:** SQL, PostgreSQL, and database design ✅
 - **Week 5:** ~~Flask~~ (Skipped — jumped directly to FastAPI)
-- **Week 6:** FastAPI, Pydantic, Celery, Redis, DI, Pydantic Settings ✅ (Complete — Day 42)
-- **Week 7:** Authentication, authorization, and security
+- **Week 6:** FastAPI, Pydantic, Celery, Redis, DI, Pydantic Settings ✅
+- **Week 7:** JWT Authentication, RBAC, Password Hardening, Security Audit ✅ (Complete — Day 45)
 - **Week 8:** Testing and quality assurance
 - **Week 9:** Docker and CI/CD
 - **Week 10:** Microservices architecture
 - **Week 11:** Cloud deployment and LLM integration
 - **Week 12:** Final polish and production deployment
 
-**Progress:** Day 42 of 84 (50% complete) 🎉
+**Progress:** Day 45 of 84 (54% complete) 🎉
 
 ---
 

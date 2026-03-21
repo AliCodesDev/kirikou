@@ -4,6 +4,53 @@ All notable changes to Kirikou will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Week 7] - 2026-03-21
+
+### Added
+
+**JWT Authentication (Days 43-44):**
+
+- User registration endpoint (`POST /auth/register`) with unique username/email validation
+- User login endpoint (`POST /auth/login`) with JWT token response
+- JWT token creation and verification with HS256 algorithm
+- `get_current_user` dependency — extracts and verifies Bearer token from Authorization header
+- `User` SQLAlchemy model with hashed password, role, and is_active fields
+- User query utilities: `get_user_by_id`, `get_user_by_username`, `get_user_by_email`, `create_user`
+- Pydantic schemas: `UserCreate`, `UserResponse`, `TokenResponse`
+
+**Role-Based Access Control (Day 44):**
+
+- `UserRole` enum with `ADMIN` and `READER` roles
+- `require_role()` dependency factory for protecting endpoints
+- Ingestion endpoints (`POST /ingestion/*`) restricted to admin role
+- Inactive user detection — returns 403 for deactivated accounts
+
+**Security Hardening (Day 45):**
+
+- Hardened `CryptContext` — explicit `bcrypt__rounds=12` + `deprecated="auto"` for future-proof rehashing
+- Password max length (128 chars) added to `UserCreate` schema — bcrypt truncates at 72 bytes
+- Updated `.env.example` with all settings: `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `JWT_EXPIRE_MINUTES`
+- Generation instructions for secret keys as comments in `.env.example`
+
+### Security Audit
+
+- ✅ Generic login error message — no username/password enumeration
+- ✅ `UserResponse` excludes `hashed_password` — never exposed in API responses
+- ✅ `get_user_by_id` (used by `get_current_user`) excludes `hashed_password`
+- ✅ Both `SECRET_KEY` and `JWT_SECRET_KEY` use `SecretStr` — never leak in logs
+- ✅ `.env` is gitignored (`.env`, `.env.*`, `.env.local`)
+- ✅ No hardcoded secrets found in codebase
+
+### Technical Details
+
+**API Endpoints:** 11 total (5 GET, 4 POST, 1 health check, 1 login)
+
+**Auth Schemas:** 3 (UserCreate, UserResponse, TokenResponse)
+
+**Dependencies Added:** PyJWT, passlib[bcrypt], bcrypt
+
+---
+
 ## [Week 6] - 2026-02-21
 
 ### Added
@@ -234,11 +281,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Progress Summary
 
-**Days Completed:** 42 of 84 (50%)
+**Days Completed:** 45 of 84 (54%)
 
-**Current Phase:** Week 6 Complete ✅ — Async Architecture
+**Current Phase:** Week 7 Complete ✅ — Authentication & Security
 
-**Next Phase:** Week 7 — Authentication & Security (JWT, rate limiting, CORS)
+**Next Phase:** Week 8 — Testing & Quality Assurance (pytest)
 
 **Technical Milestones:**
 
@@ -253,10 +300,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - ✅ FastAPI Dependency Injection for database sessions
 - ✅ Celery workers with Redis broker for async scraping
 - ✅ Celery Beat for autonomous hourly scraping
+- ✅ JWT authentication with HS256 signing
+- ✅ Role-Based Access Control (RBAC) with admin/reader roles
+- ✅ Hardened password hashing with bcrypt CryptContext
+- ✅ Security audit passed — no hash leaks, generic errors, no hardcoded secrets
 
 **Portfolio Highlights:**
 
-- 842+ articles from 10+ global news sources
+- 1610+ articles from 10+ global news sources
 - Production-grade database design with strategic indexes
 - Type-safe ORM with automatic relationships
 - RESTful API with 9 endpoints and auto-generated docs
@@ -273,18 +324,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Coming Next
 
-**Week 6 Complete** ✅
+**Week 7 Complete** ✅
 
-- FastAPI REST API with Pydantic validation
-- Celery workers with Redis for async scraping
-- Pydantic Settings for type-safe configuration
+- JWT authentication with user registration and login
+- Role-Based Access Control with admin/reader roles
+- Hardened password hashing and security audit
 
-**Week 7 (Days 43-49):** Authentication & Security
+**Week 8 (Days 50-56):** Testing & Quality Assurance
 
-- JWT authentication
-- Rate limiting and CORS
-- Input sanitization
-- Password hashing
+- Comprehensive pytest suite
+- Unit tests for all modules
+- Integration tests for database operations
+- 80%+ code coverage
 
 **Week 11 (Days 71-77):** LLM Integration
 
