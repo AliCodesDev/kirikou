@@ -34,6 +34,14 @@ class SourceCreate(BaseModel):
         description="Political leaning classification"
     )
 
+    @field_validator('name')
+    @classmethod
+    def name_must_not_contain_html(cls, v: str) -> str:
+        """Reject source names containing HTML tags."""
+        if '<' in v or '>' in v:
+            raise ValueError('Source name must not contain < or > characters')
+        return v
+
     @field_validator('url')
     @classmethod
     def url_must_be_valid(cls, v: str) -> str:
@@ -41,7 +49,7 @@ class SourceCreate(BaseModel):
         if not v.startswith(('http://', 'https://')):
             raise ValueError('URL must start with http:// or https://')
         return v
-    
+
     @field_validator('political_leaning')
     @classmethod
     def leaning_must_be_valid(cls, v: str | None) -> str | None:
