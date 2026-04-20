@@ -1,6 +1,9 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from config import get_settings
+from api.rate_limiter import limiter
 from api.routes import sources, articles, ingestion
 from auth import routes as auth_routes
 
@@ -8,6 +11,9 @@ settings = get_settings()
 settings.setup_logging()
 
 app = FastAPI(title=settings.app_name, debug=settings.debug)
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware
 app.add_middleware(
@@ -29,7 +35,8 @@ async def add_security_headers(request: Request, call_next):
 
 
 @app.get("/")
-def read_root():
+@limiter.limit(settings.rate_limit_default)
+def read_root(request: Request, response: Response):
     """Health check endpoint."""
     return {"status": "ok", "message": "Kirikou is alive!"}
 

@@ -42,21 +42,22 @@ def get_all_sources(db: Session) -> List[Dict]:
     ]
 
 
-def get_recent_articles_standalone(limit: int = 20) -> List[Dict]:
+def get_recent_articles_standalone(limit: int = 20, offset: int = 0) -> List[Dict]:
     """Standalone version for CLI scripts (creates own session)."""
     with get_session_no_commit() as session:
-        return get_recent_articles(session, limit)
+        return get_recent_articles(session, limit, offset)
 
-def get_recent_articles(db: Session, limit: int = 20) -> List[Dict]:
+def get_recent_articles(db: Session, limit: int = 20, offset: int = 0) -> List[Dict]:
     """
     New version — uses injected session.
 
     Get recent articles with source information using provided session.
-    
+
     Args:
         db: Database session
         limit: Maximum number of articles
-        
+        offset: Number of rows to skip for pagination
+
     Returns:
         List of article dictionaries
     """
@@ -64,6 +65,7 @@ def get_recent_articles(db: Session, limit: int = 20) -> List[Dict]:
     articles = db.query(Article)\
         .options(joinedload(Article.source))\
         .order_by(Article.published_at.desc())\
+        .offset(offset)\
         .limit(limit)\
         .all()
     
@@ -213,22 +215,23 @@ def get_duplicate_stories() -> List[Dict]:
         ]
 
 
-def get_articles_by_source_standalone(source_name: str, days: int = 7, limit: int = 500) -> List[Dict]:
+def get_articles_by_source_standalone(source_name: str, days: int = 7, limit: int = 500, offset: int = 0) -> List[Dict]:
     """Standalone version for CLI scripts (creates own session)."""
     with get_session_no_commit() as session:
-        return get_articles_by_source(session, source_name, days, limit)
-    
+        return get_articles_by_source(session, source_name, days, limit, offset)
 
-def get_articles_by_source(db: Session, source_name: str, days: int = 7, limit: int = 500) -> List[Dict]:
+
+def get_articles_by_source(db: Session, source_name: str, days: int = 7, limit: int = 500, offset: int = 0) -> List[Dict]:
     """
     New version — uses injected session.
 
     Get articles from a specific source within the last N days using provided session.
-    
+
     Args:
         db: Database session
         source_name: Name of the source
         days: Number of days to look back
+        offset: Number of rows to skip for pagination
     Returns:
         List of articles
     """
@@ -241,6 +244,7 @@ def get_articles_by_source(db: Session, source_name: str, days: int = 7, limit: 
             Article.published_at >= cutoff_date
         )\
         .order_by(Article.published_at.desc())\
+        .offset(offset)\
         .limit(limit)\
         .all()
     

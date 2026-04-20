@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, Request, Response
 from ingestion import feed_parser as fp, validate_feeds as vf
 from database.schemas import SourceResponse, SourceCreate, SourceUpdate, ScrapeResponse
 from database import utils as db_utils
@@ -7,19 +7,25 @@ from database.db import get_db
 from worker.tasks import scrape_all_sources_task, scrape_source_by_id_task
 from auth.dependencies import require_role
 from auth.roles import UserRole
+from api.rate_limiter import limiter
+from config import get_settings
+
+settings = get_settings()
 
 
 router = APIRouter(prefix="/ingestion", tags=["Ingestion"])
 
 @router.post("/scrape", status_code=202, response_model=ScrapeResponse)
-def scrape_all_sources(current_user: dict = Depends(require_role("admin"))):
+@limiter.limit(settings.rate_limit_scrape)
+def scrape_all_sources(request: Request, response: Response, current_user: dict = Depends(require_role(UserRole.ADMIN))):
     """Endpoint to trigger scraping for all sources."""
     result = scrape_all_sources_task.delay()  # Trigger the Celery task asynchronously
     return {"message": "Scraping for all sources started", "status": "accepted", "task_id": result.id}
 
 
 @router.post("/scrape/{source_id}", status_code=202, response_model=ScrapeResponse)
-def trigger_scraping_source(source_id: int, db: Session = Depends(get_db), current_user: dict = Depends(require_role(UserRole.ADMIN))):
+@limiter.limit(settings.rate_limit_scrape)
+def trigger_scraping_source(request: Request, response: Response, source_id: int, db: Session = Depends(get_db), current_user: dict = Depends(require_role(UserRole.ADMIN))):
     """Endpoint to trigger scraping for a specific source."""
     source = db_utils.get_source_by_id(db, source_id)
     if not source:
@@ -29,7 +35,8 @@ def trigger_scraping_source(source_id: int, db: Session = Depends(get_db), curre
 
 
 @router.post("/sources", status_code=201, response_model=ScrapeResponse)
-def create_source(source_data: SourceCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db), current_user: dict = Depends(require_role(UserRole.ADMIN))):
+@limiter.limit(settings.rate_limit_default)
+def create_source(request: Request, response: Response, source_data: SourceCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db), current_user: dict = Depends(require_role(UserRole.ADMIN))):
     """Endpoint to create a new news source."""
     new_source = db_utils.create_source(db, source_data.model_dump())
 

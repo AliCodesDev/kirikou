@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     celery_result_backend: str = 'redis://localhost:6379/1'
     allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:8000"]
 
+    rate_limit_default: str = "100/minute"
+    rate_limit_auth: str = "5/minute"
+    rate_limit_scrape: str = "2/minute"
+    rate_limit_storage_uri: str = "redis://localhost:6379/2"
+
     @field_validator("log_level")
     @classmethod
     def validate_log_level(cls, v: str) -> str:
